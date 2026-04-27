@@ -167,7 +167,21 @@ export function NewBookingDialog() {
     return null;
   }, [sortedLegs]);
 
-  const totalNights = legAnalyses.reduce((s, l) => s + l.nights, 0);
+  // Real "stay length" is the span of the merged range (parallel legs don't
+  // multiply nights). Per-leg "bed-nights" still drive pricing.
+  const totalNights = useMemo(() => {
+    const valid = legAnalyses.filter((l) => l.datesValid);
+    if (valid.length === 0) return 0;
+    const minIn = valid.reduce(
+      (m, l) => (l.leg.checkIn < m ? l.leg.checkIn : m),
+      valid[0].leg.checkIn,
+    );
+    const maxOut = valid.reduce(
+      (m, l) => (l.leg.checkOut > m ? l.leg.checkOut : m),
+      valid[0].leg.checkOut,
+    );
+    return diffDays(minIn, maxOut);
+  }, [legAnalyses]);
   const hasAnyConflict = legAnalyses.some((l) => l.conflicts.length > 0);
   const allDatesValid = legAnalyses.every((l) => l.datesValid);
   const canSubmit =
