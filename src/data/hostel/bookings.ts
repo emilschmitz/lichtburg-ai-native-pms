@@ -243,14 +243,22 @@ const seeds: Seed[] = [
   // Sold as a unit (couples, friends, or solo paying for the room).
   // Free T+4..T+6 → fits a 3-night couple/solo stay.
   // ============================================================
-  // Tariq books the whole room solo (just bed A occupied; B ghost-blocked).
+  // Tariq books the whole room solo — represented as ONE stay with TWO legs
+  // (one per bed), sharing groupId so the timeline can merge them visually.
   { guestName: "Tariq Hassan", guestCountry: "EG", bedId: "b-301-a",
+    groupId: "grp-tariq-301",
+    guestEmail: "tariq.h@example.eg", channel: "expedia",
+    paymentStatus: "paid",
+    checkIn: T(0), checkOut: T(4), status: "checked_in",
+    notes: "Solo traveller, paid for whole twin room." },
+  { guestName: "Tariq Hassan", guestCountry: "EG", bedId: "b-301-b",
+    groupId: "grp-tariq-301",
     guestEmail: "tariq.h@example.eg", channel: "expedia",
     paymentStatus: "paid",
     checkIn: T(0), checkOut: T(4), status: "checked_in",
     notes: "Solo traveller, paid for whole twin room." },
   // Free T+4..T+6 — entire room available
-  // Leon + Saskia couple take the room T+7..T+10
+  // Leon + Saskia couple take the room T+7..T+10 (separate guest records)
   { guestName: "Leon Hofer", guestCountry: "CH", bedId: "b-301-a",
     guestLanguage: "DE", channel: "direct",
     checkIn: T(7), checkOut: T(10), status: "confirmed",

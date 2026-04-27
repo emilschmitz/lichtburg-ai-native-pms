@@ -13,6 +13,7 @@ import {
   BEDS,
   TODAY,
 } from "@/data/hostel";
+import type { Bed, Booking, Room } from "@/data/hostel/types";
 import {
   addDaysISO,
   formatDayNum,
@@ -22,9 +23,10 @@ import {
 } from "@/lib/pms/dates";
 import {
   bookingsOnBedInRange,
+  isPrivateRoom,
   occupancySeries,
 } from "@/lib/pms/availability";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookings } from "@/lib/pms/bookings-store";
 import { usePmsUi } from "@/lib/pms/ui-store";
@@ -163,8 +165,21 @@ export function TimelineView() {
           {/* Rooms + beds */}
           {ROOMS.map((room) => {
             const roomBeds = BEDS.filter((b) => b.roomId === room.id);
+            const isPrivate = isPrivateRoom(room);
+
+            // Compute "whole-room blocks" for private rooms: contiguous date
+            // ranges where every bed in the room is occupied by the same
+            // party (same checkIn/checkOut). Render those as a single fat
+            // bar across all bed rows; suppress the per-bed bars.
+            const wholeBlocks = isPrivate
+              ? computeWholeRoomBlocks(room, roomBeds, bookings, startDate, endDate)
+              : [];
+            const mergedBookingIds = new Set(
+              wholeBlocks.flatMap((b) => b.bookings.map((bk) => bk.id)),
+            );
+
             return (
-              <div key={room.id} className="hairline-b">
+              <div key={room.id} className="hairline-b relative">
                 {/* Room header row */}
                 <div
                   className="flex bg-secondary hairline-b sticky left-0 z-10"
@@ -179,6 +194,14 @@ export function TimelineView() {
                     <span className="text-[11px] text-muted-foreground truncate">
                       {room.name}
                     </span>
+                    {isPrivate && (
+                      <span
+                        className="text-[9px] uppercase tracking-wider text-muted-foreground hairline px-1"
+                        title="Private room — sold as a unit, never shared with strangers"
+                      >
+                        whole-room
+                      </span>
+                    )}
                     <span className="ml-auto text-[10px] text-muted-foreground tabular">
                       €{room.pricePerNight}
                     </span>
@@ -207,10 +230,16 @@ export function TimelineView() {
                       </div>
                       {/* Empty-cell click targets for new bookings */}
                       {dates.map((d, di) => {
-                        const occupied = myBookings.some(
+                        // For private rooms, an empty cell on bed B should
+                        // also be considered "occupied" if the room is
+                        // whole-blocked by another party's bed-A booking.
+                        const occupiedHere = myBookings.some(
                           (bk) => bk.checkIn <= d && bk.checkOut > d,
                         );
-                        if (occupied) return null;
+                        const wholeBlocked =
+                          isPrivate &&
+                          wholeBlocks.some((b) => b.from <= d && b.to > d);
+                        if (occupiedHere || wholeBlocked) return null;
                         return (
                           <button
                             key={d}
@@ -232,8 +261,9 @@ export function TimelineView() {
                           </button>
                         );
                       })}
-                      {/* Bookings */}
+                      {/* Bookings — skip ones merged into a whole-room block */}
                       {myBookings.map((bk) => {
+                        if (mergedBookingIds.has(bk.id)) return null;
                         const visEnd = bk.checkOut > endDate ? endDate : bk.checkOut;
                         const visStart = bk.checkIn < startDate ? startDate : bk.checkIn;
                         const span = diffDays(visStart, visEnd);
@@ -263,6 +293,48 @@ export function TimelineView() {
                         );
                       })}
                     </div>
+                  );
+                })}
+
+                {/* Whole-room merged bars — overlay spanning all bed rows.
+                    Bed rows start after the 28px room header, each ROW_H tall. */}
+                {wholeBlocks.map((block) => {
+                  const visStart = block.from < startDate ? startDate : block.from;
+                  const visEnd = block.to > endDate ? endDate : block.to;
+                  const span = diffDays(visStart, visEnd);
+                  if (span <= 0) return null;
+                  const realLeft = Math.max(0, diffDays(startDate, visStart));
+                  const totalBedRowsH = roomBeds.length * ROW_H;
+                  // Topmost booking determines what the click opens
+                  const primary = block.bookings[0];
+                  const label = block.partyLabel;
+                  const everyoneTentative = block.bookings.every(
+                    (b) => b.status === "tentative",
+                  );
+                  return (
+                    <button
+                      key={`whole-${room.id}-${block.from}`}
+                      onClick={() => openBooking(primary.id)}
+                      title={`${label} · whole ${room.name} · ${block.from} → ${block.to}`}
+                      className={cn(
+                        "absolute hairline rounded-[2px] flex items-center px-2 text-[11px] font-semibold cursor-pointer hover:brightness-110 hover:ring-1 hover:ring-foreground transition",
+                        CLASS_TOKEN[room.class],
+                        everyoneTentative && "opacity-60",
+                      )}
+                      style={{
+                        // 28 = room header height, +1 to sit below its border
+                        top: 28 + 2,
+                        height: totalBedRowsH - 4,
+                        left: LABEL_W + realLeft * DAY_W + 2,
+                        width: span * DAY_W - 4,
+                      }}
+                    >
+                      <Layers className="h-3 w-3 mr-1.5 shrink-0 opacity-80" />
+                      <span className="truncate text-left flex-1">{label}</span>
+                      <span className="ml-2 text-[9px] uppercase tracking-wider opacity-80 shrink-0">
+                        whole room
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -295,4 +367,68 @@ function Legend() {
       </span>
     </div>
   );
+}
+
+/**
+ * Compute "whole-room" merged blocks for a private room within the visible
+ * window. A merged block is a date range [from, to) where every bed in the
+ * room is occupied by bookings sharing the EXACT same checkIn/checkOut —
+ * meaning either one party booked the whole room (multi-leg group) or
+ * multiple guests (e.g. a couple) booked all beds for identical dates.
+ *
+ * Returns one block per such party. Bookings with non-matching ranges fall
+ * back to per-bed rendering (no merge).
+ */
+interface WholeRoomBlock {
+  from: string;
+  to: string;
+  bookings: Booking[];
+  partyLabel: string;
+}
+
+
+
+function computeWholeRoomBlocks(
+  room: Room,
+  roomBeds: Bed[],
+  bookings: Booking[],
+  windowStart: string,
+  windowEnd: string,
+): WholeRoomBlock[] {
+  const inWindow = bookings.filter(
+    (b) =>
+      roomBeds.some((bed) => bed.id === b.bedId) &&
+      b.checkIn < windowEnd &&
+      b.checkOut > windowStart,
+  );
+  // Group by exact (checkIn, checkOut)
+  const byRange = new Map<string, Booking[]>();
+  for (const b of inWindow) {
+    const k = `${b.checkIn}|${b.checkOut}`;
+    const arr = byRange.get(k) ?? [];
+    arr.push(b);
+    byRange.set(k, arr);
+  }
+  const blocks: WholeRoomBlock[] = [];
+  for (const [, group] of byRange) {
+    // Need every bed in the room covered exactly once
+    const coveredBedIds = new Set(group.map((g) => g.bedId));
+    if (coveredBedIds.size !== roomBeds.length) continue;
+    if (!roomBeds.every((b) => coveredBedIds.has(b.id))) continue;
+    const sample = group[0];
+    // Build party label: dedupe guest names; if all same → that name; else
+    // join with " & " (two guests) or "Name +N" (3+).
+    const uniqueNames = Array.from(new Set(group.map((g) => g.guestName)));
+    let partyLabel: string;
+    if (uniqueNames.length === 1) partyLabel = uniqueNames[0];
+    else if (uniqueNames.length === 2) partyLabel = uniqueNames.join(" & ");
+    else partyLabel = `${uniqueNames[0]} +${uniqueNames.length - 1}`;
+    blocks.push({
+      from: sample.checkIn,
+      to: sample.checkOut,
+      bookings: group,
+      partyLabel,
+    });
+  }
+  return blocks.sort((a, z) => a.from.localeCompare(z.from));
 }

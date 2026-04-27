@@ -20,7 +20,7 @@ import { ROOMS, BEDS, ROOM_CLASS_LABEL, TODAY } from "@/data/hostel";
 import type { Booking } from "@/data/hostel/types";
 import { useBookings } from "@/lib/pms/bookings-store";
 import { usePmsUi } from "@/lib/pms/ui-store";
-import { roomForBed } from "@/lib/pms/availability";
+import { isPrivateRoom, roomForBed } from "@/lib/pms/availability";
 import { addDaysISO, diffDays, formatShort } from "@/lib/pms/dates";
 import {
   X,
@@ -58,6 +58,9 @@ export function NewBookingDialog() {
   const [legs, setLegs] = useState<Leg[]>([
     { bedId: defaultBed, checkIn: defaultIn, checkOut: defaultOut },
   ]);
+  // For private rooms, default to "book the whole room" (all sibling beds
+  // get auto-added as legs sharing the same dates as leg 1).
+  const [wholeRoom, setWholeRoom] = useState<boolean>(true);
 
   // Re-seed when the dialog re-opens with a different prefill
   useEffect(() => {
@@ -69,6 +72,7 @@ export function NewBookingDialog() {
     setGuestAddress("");
     setStatus("confirmed");
     setNotes("");
+    setWholeRoom(true);
     setLegs([
       {
         bedId: newBookingPrefill?.bedId ?? BEDS[0]?.id ?? "",
@@ -79,6 +83,45 @@ export function NewBookingDialog() {
       },
     ]);
   }, [newBookingOpen, newBookingPrefill]);
+
+  // The first leg drives "whole room" detection. If it lives in a private
+  // room with siblings AND the toggle is on, ensure all sibling beds are
+  // present as legs with matching dates. If the toggle is off, prune them.
+  const leg1 = legs[0];
+  const leg1Room = leg1 ? roomForBed(ROOMS, BEDS, leg1.bedId) : undefined;
+  const leg1IsPrivate = isPrivateRoom(leg1Room);
+  const siblingBedIds = useMemo(
+    () =>
+      leg1Room
+        ? BEDS.filter((b) => b.roomId === leg1Room.id && b.id !== leg1.bedId).map(
+            (b) => b.id,
+          )
+        : [],
+    [leg1Room, leg1?.bedId],
+  );
+  const hasSiblings = siblingBedIds.length > 0;
+
+  useEffect(() => {
+    if (!leg1 || !leg1IsPrivate || !hasSiblings) return;
+    setLegs((cur) => {
+      // Always keep leg 1 untouched. Manage only sibling-bed legs that match
+      // leg 1 dates — those are considered "whole-room auto-legs".
+      const others = cur.slice(1).filter(
+        (l) => !siblingBedIds.includes(l.bedId) || l.checkIn !== leg1.checkIn || l.checkOut !== leg1.checkOut,
+      );
+      if (wholeRoom) {
+        const autoLegs = siblingBedIds.map((bedId) => ({
+          bedId,
+          checkIn: leg1.checkIn,
+          checkOut: leg1.checkOut,
+        }));
+        return [cur[0], ...autoLegs, ...others];
+      }
+      return [cur[0], ...others];
+    });
+    // Re-run when bed/dates of leg 1 or toggle changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leg1?.bedId, leg1?.checkIn, leg1?.checkOut, leg1IsPrivate, hasSiblings, wholeRoom, siblingBedIds.join(",")]);
 
   // Compute conflicts per leg + overall
   const legAnalyses = useMemo(
@@ -101,15 +144,44 @@ export function NewBookingDialog() {
     [legAnalyses],
   );
   const continuityWarning = useMemo(() => {
-    for (let i = 1; i < sortedLegs.length; i++) {
-      if (sortedLegs[i].leg.checkIn !== sortedLegs[i - 1].leg.checkOut) {
-        return `Leg ${i} ends ${sortedLegs[i - 1].leg.checkOut} but next leg starts ${sortedLegs[i].leg.checkIn} — there's a gap or overlap in the stay.`;
+    // The legs together must cover ONE contiguous date range. Parallel legs
+    // on different beds (same dates) are allowed — that's a whole-room stay.
+    // We merge overlapping ranges; if the result is a single interval, OK.
+    const ranges = sortedLegs
+      .filter((l) => l.datesValid)
+      .map((l) => ({ from: l.leg.checkIn, to: l.leg.checkOut }))
+      .sort((a, z) => a.from.localeCompare(z.from));
+    if (ranges.length <= 1) return null;
+    const merged: { from: string; to: string }[] = [ranges[0]];
+    for (let i = 1; i < ranges.length; i++) {
+      const last = merged[merged.length - 1];
+      if (ranges[i].from <= last.to) {
+        if (ranges[i].to > last.to) last.to = ranges[i].to;
+      } else {
+        merged.push(ranges[i]);
       }
+    }
+    if (merged.length > 1) {
+      return `Stay isn't continuous: there's a gap between ${merged[0].to} and ${merged[1].from}.`;
     }
     return null;
   }, [sortedLegs]);
 
-  const totalNights = legAnalyses.reduce((s, l) => s + l.nights, 0);
+  // Real "stay length" is the span of the merged range (parallel legs don't
+  // multiply nights). Per-leg "bed-nights" still drive pricing.
+  const totalNights = useMemo(() => {
+    const valid = legAnalyses.filter((l) => l.datesValid);
+    if (valid.length === 0) return 0;
+    const minIn = valid.reduce(
+      (m, l) => (l.leg.checkIn < m ? l.leg.checkIn : m),
+      valid[0].leg.checkIn,
+    );
+    const maxOut = valid.reduce(
+      (m, l) => (l.leg.checkOut > m ? l.leg.checkOut : m),
+      valid[0].leg.checkOut,
+    );
+    return diffDays(minIn, maxOut);
+  }, [legAnalyses]);
   const hasAnyConflict = legAnalyses.some((l) => l.conflicts.length > 0);
   const allDatesValid = legAnalyses.every((l) => l.datesValid);
   const canSubmit =
@@ -288,6 +360,26 @@ export function NewBookingDialog() {
                 <Plus className="h-3 w-3" /> Extend onto another bed
               </button>
             </div>
+
+            {leg1IsPrivate && hasSiblings && (
+              <label className="flex items-start gap-2 hairline bg-secondary/40 p-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={wholeRoom}
+                  onChange={(e) => setWholeRoom(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span className="text-[11px] leading-snug">
+                  <strong>Book the whole room</strong> — private rooms are
+                  normally sold as a unit. With this on, all{" "}
+                  {siblingBedIds.length + 1} beds in{" "}
+                  {leg1Room?.number} {leg1Room?.name} are reserved for this
+                  guest. Uncheck only if you really intend to leave the other
+                  bed{siblingBedIds.length > 1 ? "s" : ""} bookable to a
+                  stranger (unusual).
+                </span>
+              </label>
+            )}
 
             {legs.length > 1 && (
               <p className="text-[11px] text-muted-foreground leading-relaxed">
