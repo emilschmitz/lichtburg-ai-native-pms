@@ -93,10 +93,10 @@ const seeds: Seed[] = [
   // ============================================================
   // LINDEN SINGLE 102 — 1 bed
   // ============================================================
-  // GAP on T+5..T+8 (3 nights free) — supports Path B leg #2
+  // GAP on T+4..T+8 (4 nights free) — supports Path B (single upgrade) leg #2
   { guestName: "Margaret Hall", guestCountry: "US", bedId: "b-102-a",
-    checkIn: T(0), checkOut: T(5), status: "checked_in" },
-  // gap T+5..T+8
+    checkIn: T(0), checkOut: T(4), status: "checked_in" },
+  // gap T+4..T+8
   { guestName: "Jean-Paul Mercier", guestCountry: "FR", bedId: "b-102-a",
     checkIn: T(8), checkOut: T(11), status: "confirmed" },
 
