@@ -372,11 +372,7 @@ export function TimelineView() {
                         width: span * DAY_W - 4,
                       }}
                     >
-                      <Layers className="h-3 w-3 mr-1.5 shrink-0 opacity-80" />
                       <span className="truncate text-left flex-1">{label}</span>
-                      <span className="ml-2 text-[9px] uppercase tracking-wider opacity-80 shrink-0">
-                        whole room
-                      </span>
                     </button>
                   );
                 })}
