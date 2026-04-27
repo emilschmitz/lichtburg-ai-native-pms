@@ -248,17 +248,6 @@ export function TimelineView() {
                     <span className="text-[11px] text-muted-foreground truncate">
                       {room.name}
                     </span>
-                    {isPrivate && (
-                      <span
-                        className="text-[9px] uppercase tracking-wider text-muted-foreground hairline px-1"
-                        title="Private room — sold as a unit, never shared with strangers"
-                      >
-                        whole-room
-                      </span>
-                    )}
-                    <span className="ml-auto text-[10px] text-muted-foreground tabular">
-                      €{room.pricePerNight}
-                    </span>
                   </div>
                 </div>
                 {/* Bed rows */}
