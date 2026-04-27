@@ -70,8 +70,8 @@ const seeds: Seed[] = [
   // 101-1b — gap T+1..T+3 (Path A leg #1)
   { guestName: "Pedro Alves", guestCountry: "PT", bedId: "b-101-1b",
     guestPhone: "+351 91 234 5678", channel: "walk_in", paymentStatus: "paid",
-    checkIn: T(-1), checkOut: T(1), status: "checked_in" },
-  // free T+1, T+2, T+3
+    checkIn: T(-1), checkOut: T(0), status: "checked_out" },
+  // free T+0..T+3
   { guestName: "Anna Schmidt", guestCountry: "DE", bedId: "b-101-1b",
     guestEmail: "anna.schmidt@example.de", guestLanguage: "DE",
     guestDateOfBirth: "1994-08-12", channel: "direct", paymentStatus: "paid",
@@ -142,8 +142,8 @@ const seeds: Seed[] = [
   { guestName: "Mia Johansson", guestCountry: "SE", bedId: "b-103-a",
     guestEmail: "mia.j@example.se", guestLanguage: "EN",
     paymentStatus: "paid", channel: "booking.com",
-    checkIn: T(0), checkOut: T(2), status: "checked_in" },
-  // free T+2, T+3
+    checkIn: T(1), checkOut: T(2), status: "confirmed" },
+  // free T+0, T+2, T+3
   { guestName: "Carla Mendes", guestCountry: "BR", bedId: "b-103-a",
     checkIn: T(4), checkOut: T(7), status: "confirmed" },
   { guestName: "Helga Müller", guestCountry: "DE", bedId: "b-103-a",
@@ -181,10 +181,10 @@ const seeds: Seed[] = [
     checkIn: T(8), checkOut: T(11), status: "confirmed" },
 
   // 201-2t — gap T+1..T+2
+  // free T+0..T+2 on 201-2t (Ines arrives later in the week below)
   { guestName: "Ines Garcia", guestCountry: "ES", bedId: "b-201-2t",
     guestPhone: "+34 600 112 233", paymentStatus: "deposit",
-    checkIn: T(0), checkOut: T(1), status: "checked_in" },
-  // free T+1, T+2
+    checkIn: T(2), checkOut: T(3), status: "confirmed" },
   { guestName: "Eva Novak", guestCountry: "CZ", bedId: "b-201-2t",
     guestEmail: "eva.novak@example.cz",
     checkIn: T(3), checkOut: T(7), status: "confirmed" },
@@ -242,8 +242,8 @@ const seeds: Seed[] = [
   // 301-b — gap T+1..T+3
   { guestName: "Owen Murphy", guestCountry: "IE", bedId: "b-301-b",
     paymentStatus: "deposit",
-    checkIn: T(-2), checkOut: T(1), status: "checked_in" },
-  // free T+1, T+2, T+3
+    checkIn: T(-2), checkOut: T(0), status: "checked_out" },
+  // free T+0..T+3
   { guestName: "Nora Eriksen", guestCountry: "NO", bedId: "b-301-b",
     guestEmail: "nora.e@example.no", arrivalTimeEstimate: "after 21:00",
     checkIn: T(4), checkOut: T(7), status: "confirmed" },
