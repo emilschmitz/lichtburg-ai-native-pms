@@ -41,16 +41,17 @@ export function AssistantView() {
   const [preferredClass, setPreferredClass] = useState<RoomClass | "">("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AISuggestionsResponse | null>(null);
+  const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
     setLoading(true);
     setError(null);
+    setResult(null);
+    setStreamText("");
     try {
-      // Use a wide window if dates are missing, so the AI still has context.
       const winStart = checkIn || addDaysISO(new Date().toISOString().slice(0, 10), 0);
       const winEnd = checkOut || addDaysISO(winStart, 14);
-      const provider = getAlternativesProvider();
       const context = buildOccupationContext({
         rooms: ROOMS,
         beds: BEDS,
@@ -61,7 +62,7 @@ export function AssistantView() {
         desiredCheckOut: checkOut || undefined,
         preferredClass: preferredClass || undefined,
       });
-      const out = await provider.suggestAlternatives({
+      const out = await suggestAlternativesStreaming({
         desired: {
           naturalLanguage: naturalLanguage || undefined,
           checkIn: checkIn || undefined,
@@ -70,6 +71,7 @@ export function AssistantView() {
           preferredClass: preferredClass || undefined,
         },
         context,
+        onDelta: (t) => setStreamText((prev) => prev + t),
       });
       setResult(out);
     } catch (e) {
