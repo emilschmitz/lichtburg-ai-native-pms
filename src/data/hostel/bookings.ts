@@ -230,11 +230,15 @@ const seeds: Seed[] = [
     checkIn: T(8), checkOut: T(11), status: "confirmed" },
 
   { guestName: "Hye-jin Park", guestCountry: "KR", bedId: "b-202-b",
-    guestEmail: "hyejin.p@example.kr",
-    checkIn: T(0), checkOut: T(4), status: "checked_in",
-    notes: "Travelling with Daniel (202-a)." },
+    guestEmail: "hyejin.p@example.kr", guestLanguage: "EN",
+    paymentStatus: "paid", channel: "direct", tags: ["honeymoon"],
+    checkIn: T(-2), checkOut: T(1), status: "checked_in",
+    notes: "Travelling with Daniel (202-a). Honeymoon." },
+  // 202-b empty T+1..T+3 (entire room free, sellable as couple suite)
   { guestName: "Giulia Rossi", guestCountry: "IT", bedId: "b-202-b",
-    checkIn: T(4), checkOut: T(12), status: "confirmed" },
+    guestEmail: "giulia.rossi@example.it",
+    checkIn: T(4), checkOut: T(12), status: "confirmed",
+    notes: "Travelling with Alessandro (202-a arrives T+8)." },
 
   // ============================================================
   // SKYLINE DORM 301 — 2 beds, mixed (€30, quiet floor)
