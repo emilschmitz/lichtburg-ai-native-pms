@@ -191,6 +191,26 @@ export function AssistantView() {
 
       {/* Right: results */}
       <div className="flex-1 min-w-0 overflow-auto bg-background">
+        {loading && (
+          <div className="h-full flex flex-col">
+            <header className="hairline-b px-6 py-3 flex items-center gap-2 bg-card">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span className="text-[11px] uppercase tracking-wider font-semibold">
+                Thinking
+              </span>
+              <span className="text-[11px] text-muted-foreground tabular ml-auto">
+                {streamText.length} chars
+              </span>
+            </header>
+            <div className="flex-1 overflow-auto p-6">
+              <pre className="text-[11px] leading-relaxed font-mono text-foreground/70 whitespace-pre-wrap break-all">
+                {streamText || "Connecting to model…"}
+                <span className="inline-block w-1.5 h-3 bg-foreground/60 ml-0.5 align-middle animate-pulse" />
+              </pre>
+            </div>
+          </div>
+        )}
+
         {!result && !loading && (
           <div className="h-full flex items-center justify-center text-center px-8">
             <div className="max-w-md">
@@ -198,9 +218,8 @@ export function AssistantView() {
               <h3 className="text-[14px] font-semibold mb-2">No request yet</h3>
               <p className="text-[12px] text-muted-foreground leading-relaxed">
                 Describe a desired stay on the left. The assistant will inspect
-                current occupancy, find chainable bed sequences, and rank
-                booking configurations by trade-off (room switches, class
-                match, price).
+                current occupancy, find chainable bed sequences across rooms,
+                and rank booking configurations by trade-off.
               </p>
             </div>
           </div>
