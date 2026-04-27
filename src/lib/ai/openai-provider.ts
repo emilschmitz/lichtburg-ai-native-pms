@@ -9,7 +9,7 @@ import { suggestAlternativesServerFn } from "./server-fn";
 
 export const openAIProvider: AlternativesProvider = {
   id: "openai",
-  label: "OpenAI (gpt-4o-mini)",
+  label: "OpenAI",
   async suggestAlternatives({ desired, context }) {
     const result = (await suggestAlternativesServerFn({
       data: { desired, context },

@@ -179,8 +179,7 @@ export const suggestAlternativesServerFn = createServerFn({ method: "POST" })
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0.2,
+          model: "gpt-5.5",
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userMessage },
