@@ -58,6 +58,9 @@ export function NewBookingDialog() {
   const [legs, setLegs] = useState<Leg[]>([
     { bedId: defaultBed, checkIn: defaultIn, checkOut: defaultOut },
   ]);
+  // For private rooms, default to "book the whole room" (all sibling beds
+  // get auto-added as legs sharing the same dates as leg 1).
+  const [wholeRoom, setWholeRoom] = useState<boolean>(true);
 
   // Re-seed when the dialog re-opens with a different prefill
   useEffect(() => {
@@ -69,6 +72,7 @@ export function NewBookingDialog() {
     setGuestAddress("");
     setStatus("confirmed");
     setNotes("");
+    setWholeRoom(true);
     setLegs([
       {
         bedId: newBookingPrefill?.bedId ?? BEDS[0]?.id ?? "",
@@ -79,6 +83,45 @@ export function NewBookingDialog() {
       },
     ]);
   }, [newBookingOpen, newBookingPrefill]);
+
+  // The first leg drives "whole room" detection. If it lives in a private
+  // room with siblings AND the toggle is on, ensure all sibling beds are
+  // present as legs with matching dates. If the toggle is off, prune them.
+  const leg1 = legs[0];
+  const leg1Room = leg1 ? roomForBed(ROOMS, BEDS, leg1.bedId) : undefined;
+  const leg1IsPrivate = isPrivateRoom(leg1Room);
+  const siblingBedIds = useMemo(
+    () =>
+      leg1Room
+        ? BEDS.filter((b) => b.roomId === leg1Room.id && b.id !== leg1.bedId).map(
+            (b) => b.id,
+          )
+        : [],
+    [leg1Room, leg1?.bedId],
+  );
+  const hasSiblings = siblingBedIds.length > 0;
+
+  useEffect(() => {
+    if (!leg1 || !leg1IsPrivate || !hasSiblings) return;
+    setLegs((cur) => {
+      // Always keep leg 1 untouched. Manage only sibling-bed legs that match
+      // leg 1 dates — those are considered "whole-room auto-legs".
+      const others = cur.slice(1).filter(
+        (l) => !siblingBedIds.includes(l.bedId) || l.checkIn !== leg1.checkIn || l.checkOut !== leg1.checkOut,
+      );
+      if (wholeRoom) {
+        const autoLegs = siblingBedIds.map((bedId) => ({
+          bedId,
+          checkIn: leg1.checkIn,
+          checkOut: leg1.checkOut,
+        }));
+        return [cur[0], ...autoLegs, ...others];
+      }
+      return [cur[0], ...others];
+    });
+    // Re-run when bed/dates of leg 1 or toggle changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leg1?.bedId, leg1?.checkIn, leg1?.checkOut, leg1IsPrivate, hasSiblings, wholeRoom, siblingBedIds.join(",")]);
 
   // Compute conflicts per leg + overall
   const legAnalyses = useMemo(
