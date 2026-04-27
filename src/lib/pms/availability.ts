@@ -1,5 +1,23 @@
-import type { Bed, Booking, Room } from "@/data/hostel/types";
+import type { Bed, Booking, Room, RoomClass } from "@/data/hostel/types";
 import { addDaysISO, diffDays, rangeDates } from "./dates";
+
+/**
+ * Whole-room semantics: private rooms (single, double, en-suite) are sold as
+ * a unit — once one bed is occupied for a date range, every bed in that room
+ * is blocked for that range. Strangers do NOT share a private room.
+ *
+ * Dorms (shared_mixed, shared_female) remain bed-level: separate guests can
+ * book different beds in the same dorm.
+ */
+const PRIVATE_CLASSES: ReadonlySet<RoomClass> = new Set([
+  "single_private",
+  "double_private",
+  "private_ensuite",
+]);
+
+export function isPrivateRoom(room: Room | undefined): boolean {
+  return !!room && PRIVATE_CLASSES.has(room.class);
+}
 
 /** True if booking covers the given night (checkIn <= night < checkOut). */
 export function bookingCoversNight(b: Booking, nightIso: string): boolean {
@@ -17,19 +35,34 @@ export function bookingForBedOnNight(
   );
 }
 
-/** Beds free for the FULL [start,end) range without any overlap. */
+/**
+ * Beds free for the FULL [start,end) range without any overlap.
+ *
+ * Honors whole-room semantics for private rooms when `rooms` is provided:
+ * if any bed in a private room is occupied during the range, every bed in
+ * that room is excluded (private rooms are never sold to strangers
+ * alongside another party).
+ */
 export function bedsFreeForRange(
   beds: Bed[],
   bookings: Booking[],
   start: string,
   end: string,
+  rooms?: Room[],
 ): Bed[] {
-  return beds.filter(
-    (bed) =>
-      !bookings.some(
-        (b) => b.bedId === bed.id && b.checkIn < end && b.checkOut > start,
-      ),
-  );
+  const bedFree = (bedId: string) =>
+    !bookings.some(
+      (b) => b.bedId === bedId && b.checkIn < end && b.checkOut > start,
+    );
+  if (!rooms) return beds.filter((bed) => bedFree(bed.id));
+
+  const blockedRoomIds = new Set<string>();
+  for (const room of rooms) {
+    if (!isPrivateRoom(room)) continue;
+    const roomBeds = beds.filter((b) => b.roomId === room.id);
+    if (roomBeds.some((b) => !bedFree(b.id))) blockedRoomIds.add(room.id);
+  }
+  return beds.filter((bed) => bedFree(bed.id) && !blockedRoomIds.has(bed.roomId));
 }
 
 /** % occupancy across all beds for a single night. */

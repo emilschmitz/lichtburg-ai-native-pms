@@ -19,7 +19,7 @@
  */
 
 import type { Bed, Booking, DesiredStay, Room, RoomClass } from "@/data/hostel/types";
-import { bookingsOnBedInRange, roomForBed } from "./availability";
+import { bookingsOnBedInRange, isPrivateRoom, roomForBed } from "./availability";
 import { diffDays } from "./dates";
 
 export interface AltLeg {
@@ -71,13 +71,25 @@ function nextBlockedAt(
 }
 
 /** Beds free starting at exactly `from` (i.e. no booking covers `from`). */
-function bedsFreeAt(beds: Bed[], bookings: Booking[], from: string): Bed[] {
-  return beds.filter(
-    (bed) =>
-      !bookings.some(
-        (b) => b.bedId === bed.id && b.checkIn <= from && b.checkOut > from,
-      ),
-  );
+function bedsFreeAt(
+  beds: Bed[],
+  rooms: Room[],
+  bookings: Booking[],
+  from: string,
+): Bed[] {
+  const bedFree = (bedId: string) =>
+    !bookings.some(
+      (b) => b.bedId === bedId && b.checkIn <= from && b.checkOut > from,
+    );
+  // Whole-room block for private rooms: if any sibling bed is occupied
+  // at `from`, the whole room is unavailable to a new party.
+  const blockedRoomIds = new Set<string>();
+  for (const room of rooms) {
+    if (!isPrivateRoom(room)) continue;
+    const roomBeds = beds.filter((b) => b.roomId === room.id);
+    if (roomBeds.some((b) => !bedFree(b.id))) blockedRoomIds.add(room.id);
+  }
+  return beds.filter((bed) => bedFree(bed.id) && !blockedRoomIds.has(bed.roomId));
 }
 
 interface BuildOpts {
@@ -104,7 +116,7 @@ function buildSequence(
   let safety = maxLegs + 2;
 
   while (cursor < end && safety-- > 0) {
-    const candidates = bedsFreeAt(beds, bookings, cursor);
+    const candidates = bedsFreeAt(beds, rooms, bookings, cursor);
     if (candidates.length === 0) return null;
 
     // Determine the next-blocked date for each candidate, capped at `end`.

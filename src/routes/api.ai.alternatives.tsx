@@ -38,10 +38,16 @@ CRITICAL RULES for any "suggestion" you return:
      restrict yourself to single-room or single-class solutions.
   3. Every leg's bedId MUST exist in context.rooms and MUST NOT overlap any
      existing booking on that bedId.
-  4. Keep totals consistent: totalNights = sum(leg.nights);
+  4. WHOLE-ROOM RULE for private rooms (class single_private, double_private,
+     private_ensuite): these are sold as a unit, never shared with strangers.
+     If ANY bed in a private room is occupied during the leg's date range,
+     NO bed in that room is bookable to a different party for that range —
+     skip the entire room. Dorms (shared_mixed, shared_female) remain
+     bed-level: different parties can occupy different beds.
+  5. Keep totals consistent: totalNights = sum(leg.nights);
      totalPrice = sum(leg.nights * leg.pricePerNight);
      switches = legs.length - 1.
-  5. tradeoffs are concrete and operator-facing.
+  6. tradeoffs are concrete and operator-facing.
 
 Return 2–4 suggestions, best-first. Be quick: minimal reasoning, short
 rationales. Don't over-deliberate.`;

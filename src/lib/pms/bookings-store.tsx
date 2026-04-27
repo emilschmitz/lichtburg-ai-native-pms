@@ -16,7 +16,8 @@ import {
   type ReactNode,
 } from "react";
 import type { Booking } from "@/data/hostel/types";
-import { BOOKINGS as SEED } from "@/data/hostel";
+import { BOOKINGS as SEED, ROOMS, BEDS } from "@/data/hostel";
+import { isPrivateRoom } from "./availability";
 
 export interface NewBookingInput {
   guestName: string;
@@ -96,13 +97,32 @@ export function BookingsProvider({ children }: { children: ReactNode }) {
 
   const checkConflicts = useCallback<Ctx["checkConflicts"]>(
     (bedId, checkIn, checkOut, ignoreIds = []) => {
-      const conflicts = bookings.filter(
+      // Direct bed-level conflicts
+      const direct = bookings.filter(
         (b) =>
           b.bedId === bedId &&
           !ignoreIds.includes(b.id) &&
           b.checkIn < checkOut &&
           b.checkOut > checkIn,
       );
+      // Whole-room block: if this bed is in a private room, also surface
+      // any sibling-bed bookings overlapping the range as conflicts.
+      const bed = BEDS.find((x) => x.id === bedId);
+      const room = bed ? ROOMS.find((r) => r.id === bed.roomId) : undefined;
+      let sibling: Booking[] = [];
+      if (room && isPrivateRoom(room)) {
+        const siblingBedIds = BEDS.filter(
+          (b) => b.roomId === room.id && b.id !== bedId,
+        ).map((b) => b.id);
+        sibling = bookings.filter(
+          (b) =>
+            siblingBedIds.includes(b.bedId) &&
+            !ignoreIds.includes(b.id) &&
+            b.checkIn < checkOut &&
+            b.checkOut > checkIn,
+        );
+      }
+      const conflicts = [...direct, ...sibling];
       return { ok: conflicts.length === 0, conflicts };
     },
     [bookings],

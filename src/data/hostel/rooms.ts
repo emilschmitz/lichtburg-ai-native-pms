@@ -78,13 +78,13 @@ export const ROOMS: Room[] = [
   {
     id: "r-301",
     number: "301",
-    name: "Skyline Dorm",
-    class: "shared_mixed",
+    name: "Skyline Twin",
+    class: "double_private",
     capacity: 2,
     floor: 2,
     layout: { x: 0, y: 0, w: 4, h: 3 },
-    pricePerNight: 30,
-    amenities: ["Skylight", "Quiet floor"],
+    pricePerNight: 78,
+    amenities: ["Skylight", "Quiet floor", "Two single beds"],
   },
 ];
 
@@ -118,7 +118,7 @@ export const BEDS: Bed[] = [
   { id: "b-202-a", roomId: "r-202", label: "Bed A", type: "double" },
   { id: "b-202-b", roomId: "r-202", label: "Bed B", type: "single" },
 
-  // Skyline Dorm (2)
+  // Skyline Twin (2 — private twin, both beds sold together)
   { id: "b-301-a", roomId: "r-301", label: "Bed A", type: "single" },
   { id: "b-301-b", roomId: "r-301", label: "Bed B", type: "single" },
 ];
