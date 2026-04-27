@@ -43,6 +43,60 @@ const CLASS_TOKEN: Record<string, string> = {
   private_ensuite: "bg-class-private text-primary-foreground",
 };
 
+interface WholeRoomBlock {
+  from: string;
+  to: string;
+  bookings: Booking[];
+  partyLabel: string;
+}
+
+/**
+ * Compute "whole-room" merged blocks for a private room within the visible
+ * window. A merged block is a date range [from, to) where every bed in the
+ * room is occupied by bookings sharing the EXACT same checkIn/checkOut.
+ */
+function computeWholeRoomBlocks(
+  room: Room,
+  roomBeds: Bed[],
+  bookings: Booking[],
+  windowStart: string,
+  windowEnd: string,
+): WholeRoomBlock[] {
+  void room;
+  const inWindow = bookings.filter(
+    (b) =>
+      roomBeds.some((bed) => bed.id === b.bedId) &&
+      b.checkIn < windowEnd &&
+      b.checkOut > windowStart,
+  );
+  const byRange = new Map<string, Booking[]>();
+  for (const b of inWindow) {
+    const k = `${b.checkIn}|${b.checkOut}`;
+    const arr = byRange.get(k) ?? [];
+    arr.push(b);
+    byRange.set(k, arr);
+  }
+  const blocks: WholeRoomBlock[] = [];
+  for (const [, group] of byRange) {
+    const coveredBedIds = new Set(group.map((g) => g.bedId));
+    if (coveredBedIds.size !== roomBeds.length) continue;
+    if (!roomBeds.every((b) => coveredBedIds.has(b.id))) continue;
+    const sample = group[0];
+    const uniqueNames = Array.from(new Set(group.map((g) => g.guestName)));
+    let partyLabel: string;
+    if (uniqueNames.length === 1) partyLabel = uniqueNames[0];
+    else if (uniqueNames.length === 2) partyLabel = uniqueNames.join(" & ");
+    else partyLabel = `${uniqueNames[0]} +${uniqueNames.length - 1}`;
+    blocks.push({
+      from: sample.checkIn,
+      to: sample.checkOut,
+      bookings: group,
+      partyLabel,
+    });
+  }
+  return blocks.sort((a, z) => a.from.localeCompare(z.from));
+}
+
 export function TimelineView() {
   const { bookings } = useBookings();
   const { openBooking, openNewBooking } = usePmsUi();
@@ -367,68 +421,4 @@ function Legend() {
       </span>
     </div>
   );
-}
-
-/**
- * Compute "whole-room" merged blocks for a private room within the visible
- * window. A merged block is a date range [from, to) where every bed in the
- * room is occupied by bookings sharing the EXACT same checkIn/checkOut —
- * meaning either one party booked the whole room (multi-leg group) or
- * multiple guests (e.g. a couple) booked all beds for identical dates.
- *
- * Returns one block per such party. Bookings with non-matching ranges fall
- * back to per-bed rendering (no merge).
- */
-interface WholeRoomBlock {
-  from: string;
-  to: string;
-  bookings: Booking[];
-  partyLabel: string;
-}
-
-
-
-function computeWholeRoomBlocks(
-  room: Room,
-  roomBeds: Bed[],
-  bookings: Booking[],
-  windowStart: string,
-  windowEnd: string,
-): WholeRoomBlock[] {
-  const inWindow = bookings.filter(
-    (b) =>
-      roomBeds.some((bed) => bed.id === b.bedId) &&
-      b.checkIn < windowEnd &&
-      b.checkOut > windowStart,
-  );
-  // Group by exact (checkIn, checkOut)
-  const byRange = new Map<string, Booking[]>();
-  for (const b of inWindow) {
-    const k = `${b.checkIn}|${b.checkOut}`;
-    const arr = byRange.get(k) ?? [];
-    arr.push(b);
-    byRange.set(k, arr);
-  }
-  const blocks: WholeRoomBlock[] = [];
-  for (const [, group] of byRange) {
-    // Need every bed in the room covered exactly once
-    const coveredBedIds = new Set(group.map((g) => g.bedId));
-    if (coveredBedIds.size !== roomBeds.length) continue;
-    if (!roomBeds.every((b) => coveredBedIds.has(b.id))) continue;
-    const sample = group[0];
-    // Build party label: dedupe guest names; if all same → that name; else
-    // join with " & " (two guests) or "Name +N" (3+).
-    const uniqueNames = Array.from(new Set(group.map((g) => g.guestName)));
-    let partyLabel: string;
-    if (uniqueNames.length === 1) partyLabel = uniqueNames[0];
-    else if (uniqueNames.length === 2) partyLabel = uniqueNames.join(" & ");
-    else partyLabel = `${uniqueNames[0]} +${uniqueNames.length - 1}`;
-    blocks.push({
-      from: sample.checkIn,
-      to: sample.checkOut,
-      bookings: group,
-      partyLabel,
-    });
-  }
-  return blocks.sort((a, z) => a.from.localeCompare(z.from));
 }
