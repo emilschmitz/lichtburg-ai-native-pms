@@ -126,14 +126,19 @@ function Empty({ children }: { children: React.ReactNode }) {
 function BookingRow({
   booking,
   variant,
+  onOpen,
 }: {
   booking: Booking;
   variant: "arrival" | "departure" | "in-house";
+  onOpen: (id: string) => void;
 }) {
   const room = roomForBed(ROOMS, BEDS, booking.bedId);
   const bed = BEDS.find((b) => b.id === booking.bedId);
   return (
-    <div className="px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50">
+    <button
+      onClick={() => onOpen(booking.id)}
+      className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50"
+    >
       <div
         className={cn(
           "h-1.5 w-1.5 hairline shrink-0",
@@ -152,6 +157,6 @@ function BookingRow({
         <div>{booking.checkIn} → {booking.checkOut}</div>
         <div className="font-mono uppercase">{booking.status.replace("_", " ")}</div>
       </div>
-    </div>
+    </button>
   );
 }
