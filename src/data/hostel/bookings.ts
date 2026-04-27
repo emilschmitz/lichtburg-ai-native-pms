@@ -139,25 +139,35 @@ const seeds: Seed[] = [
   // TEMPELHOF DOUBLE 103 — 2 beds, private double (€92)
   // 103-a free T+2..T+3, 103-b free T+5..T+7  → Path E (2 switches)
   // ============================================================
+  // 103 is a PRIVATE double — always sold to the same party (both beds together).
   { guestName: "Mia Johansson", guestCountry: "SE", bedId: "b-103-a",
     guestEmail: "mia.j@example.se", guestLanguage: "EN",
     paymentStatus: "paid", channel: "booking.com",
-    checkIn: T(1), checkOut: T(2), status: "confirmed" },
-  // free T+0, T+2, T+3
+    checkIn: T(0), checkOut: T(2), status: "checked_in",
+    notes: "Travelling with Erik (103-b)." },
+  { guestName: "Erik Johansson", guestCountry: "SE", bedId: "b-103-b",
+    guestEmail: "erik.j@example.se", guestLanguage: "EN",
+    paymentStatus: "paid", channel: "booking.com",
+    checkIn: T(0), checkOut: T(2), status: "checked_in",
+    notes: "Travelling with Mia (103-a)." },
+  // room empty T+2, T+3 — both beds free for a couple/pair
+
   { guestName: "Carla Mendes", guestCountry: "BR", bedId: "b-103-a",
-    checkIn: T(4), checkOut: T(7), status: "confirmed" },
+    guestEmail: "carla.m@example.br",
+    checkIn: T(4), checkOut: T(7), status: "confirmed",
+    notes: "Travelling with Bruno (103-b)." },
+  { guestName: "Bruno Mendes", guestCountry: "BR", bedId: "b-103-b",
+    checkIn: T(4), checkOut: T(7), status: "confirmed",
+    notes: "Travelling with Carla (103-a)." },
+
   { guestName: "Helga Müller", guestCountry: "DE", bedId: "b-103-a",
     guestLanguage: "DE", channel: "direct",
-    checkIn: T(7), checkOut: T(10), status: "confirmed" },
-
-  { guestName: "Erik Johansson", guestCountry: "SE", bedId: "b-103-b",
-    guestEmail: "erik.j@example.se",
-    checkIn: T(0), checkOut: T(5), status: "checked_in",
-    notes: "Travelling with Mia (103-a)." },
-  // free T+5, T+6, T+7
+    checkIn: T(7), checkOut: T(10), status: "confirmed",
+    notes: "Travelling with Klaus (103-b)." },
   { guestName: "Klaus Müller", guestCountry: "DE", bedId: "b-103-b",
-    guestPhone: "+49 30 1234 5678",
-    checkIn: T(8), checkOut: T(11), status: "confirmed" },
+    guestPhone: "+49 30 1234 5678", guestLanguage: "DE",
+    checkIn: T(7), checkOut: T(10), status: "confirmed",
+    notes: "Travelling with Helga (103-a)." },
 
   // ============================================================
   // MAUERPARK FEMALE 201 — 4 female-only dorm beds (€32)
