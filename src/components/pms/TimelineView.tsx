@@ -26,7 +26,7 @@ import {
   isPrivateRoom,
   occupancySeries,
 } from "@/lib/pms/availability";
-import { ChevronLeft, ChevronRight, Plus, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookings } from "@/lib/pms/bookings-store";
 import { usePmsUi } from "@/lib/pms/ui-store";
