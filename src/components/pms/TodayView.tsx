@@ -4,7 +4,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { BEDS, BOOKINGS, ROOMS, TODAY, ROOM_CLASS_LABEL } from "@/data/hostel";
+import { BEDS, ROOMS, TODAY, ROOM_CLASS_LABEL } from "@/data/hostel";
 import {
   arrivalsOn,
   departuresOn,
@@ -15,12 +15,16 @@ import { addDaysISO, formatShort } from "@/lib/pms/dates";
 import { ChevronLeft, ChevronRight, LogIn, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Booking } from "@/data/hostel/types";
+import { useBookings } from "@/lib/pms/bookings-store";
+import { usePmsUi } from "@/lib/pms/ui-store";
 
 export function TodayView() {
+  const { bookings } = useBookings();
+  const { openBooking } = usePmsUi();
   const [date, setDate] = useState<string>(TODAY);
-  const arrivals = useMemo(() => arrivalsOn(BOOKINGS, date), [date]);
-  const departures = useMemo(() => departuresOn(BOOKINGS, date), [date]);
-  const inHouse = useMemo(() => inHouseOn(BOOKINGS, date), [date]);
+  const arrivals = useMemo(() => arrivalsOn(bookings, date), [date, bookings]);
+  const departures = useMemo(() => departuresOn(bookings, date), [date, bookings]);
+  const inHouse = useMemo(() => inHouseOn(bookings, date), [date, bookings]);
 
   return (
     <div className="flex flex-col h-full">
