@@ -26,7 +26,7 @@ import {
   isPrivateRoom,
   occupancySeries,
 } from "@/lib/pms/availability";
-import { ChevronLeft, ChevronRight, Plus, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookings } from "@/lib/pms/bookings-store";
 import { usePmsUi } from "@/lib/pms/ui-store";
@@ -248,17 +248,6 @@ export function TimelineView() {
                     <span className="text-[11px] text-muted-foreground truncate">
                       {room.name}
                     </span>
-                    {isPrivate && (
-                      <span
-                        className="text-[9px] uppercase tracking-wider text-muted-foreground hairline px-1"
-                        title="Private room — sold as a unit, never shared with strangers"
-                      >
-                        whole-room
-                      </span>
-                    )}
-                    <span className="ml-auto text-[10px] text-muted-foreground tabular">
-                      €{room.pricePerNight}
-                    </span>
                   </div>
                 </div>
                 {/* Bed rows */}
@@ -383,11 +372,7 @@ export function TimelineView() {
                         width: span * DAY_W - 4,
                       }}
                     >
-                      <Layers className="h-3 w-3 mr-1.5 shrink-0 opacity-80" />
                       <span className="truncate text-left flex-1">{label}</span>
-                      <span className="ml-2 text-[9px] uppercase tracking-wider opacity-80 shrink-0">
-                        whole room
-                      </span>
                     </button>
                   );
                 })}
