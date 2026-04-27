@@ -2,17 +2,16 @@
  * Timeline view — the "video editor" strip that is the heart of any PMS.
  *
  * Rows = beds, grouped by room. Columns = dates. Bookings render as bars
- * spanning their date range. The user can scroll horizontally and click a
- * booking to see its details.
+ * spanning their date range. Click a booking bar to open the booking drawer.
+ * Click an empty cell to open the new-booking dialog prefilled for that
+ * bed + night.
  */
 
 import { useMemo, useState } from "react";
 import {
   ROOMS,
   BEDS,
-  BOOKINGS,
   TODAY,
-  ROOM_CLASS_LABEL,
 } from "@/data/hostel";
 import {
   addDaysISO,
@@ -25,8 +24,10 @@ import {
   bookingsOnBedInRange,
   occupancySeries,
 } from "@/lib/pms/availability";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBookings } from "@/lib/pms/bookings-store";
+import { usePmsUi } from "@/lib/pms/ui-store";
 
 const DAY_W = 110; // px per day column
 const ROW_H = 30; // px per bed row
@@ -41,6 +42,8 @@ const CLASS_TOKEN: Record<string, string> = {
 };
 
 export function TimelineView() {
+  const { bookings } = useBookings();
+  const { openBooking, openNewBooking } = usePmsUi();
   const [anchor, setAnchor] = useState<string>(TODAY);
   const [days, setDays] = useState<number>(14);
 
@@ -48,8 +51,8 @@ export function TimelineView() {
   const endDate = addDaysISO(anchor, days);
   const dates = useMemo(() => rangeDates(startDate, endDate), [startDate, endDate]);
   const occSeries = useMemo(
-    () => occupancySeries(BEDS, BOOKINGS, startDate, endDate),
-    [startDate, endDate],
+    () => occupancySeries(BEDS, bookings, startDate, endDate),
+    [startDate, endDate, bookings],
   );
 
   return (
@@ -184,7 +187,7 @@ export function TimelineView() {
                 {/* Bed rows */}
                 {roomBeds.map((bed) => {
                   const myBookings = bookingsOnBedInRange(
-                    BOOKINGS,
+                    bookings,
                     bed.id,
                     startDate,
                     endDate,
@@ -192,7 +195,7 @@ export function TimelineView() {
                   return (
                     <div
                       key={bed.id}
-                      className="relative flex hairline-b last:border-b-0 hover:bg-muted/40"
+                      className="relative flex hairline-b last:border-b-0 hover:bg-muted/40 group/bed"
                       style={{ height: ROW_H }}
                     >
                       <div
@@ -202,32 +205,61 @@ export function TimelineView() {
                         <span className="font-mono">{bed.id.slice(2)}</span>
                         <span className="ml-2 truncate">{bed.label}</span>
                       </div>
+                      {/* Empty-cell click targets for new bookings */}
+                      {dates.map((d, di) => {
+                        const occupied = myBookings.some(
+                          (bk) => bk.checkIn <= d && bk.checkOut > d,
+                        );
+                        if (occupied) return null;
+                        return (
+                          <button
+                            key={d}
+                            onClick={() =>
+                              openNewBooking({
+                                bedId: bed.id,
+                                checkIn: d,
+                                checkOut: addDaysISO(d, 1),
+                              })
+                            }
+                            title={`New booking on ${bed.label}, ${d}`}
+                            className="absolute top-0 bottom-0 opacity-0 hover:opacity-100 hover:bg-primary/10 flex items-center justify-center text-primary transition-opacity"
+                            style={{
+                              left: LABEL_W + di * DAY_W,
+                              width: DAY_W,
+                            }}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        );
+                      })}
                       {/* Bookings */}
                       {myBookings.map((bk) => {
-                        const left = Math.max(0, diffDays(startDate, bk.checkIn));
                         const visEnd = bk.checkOut > endDate ? endDate : bk.checkOut;
                         const visStart = bk.checkIn < startDate ? startDate : bk.checkIn;
                         const span = diffDays(visStart, visEnd);
                         const realLeft = Math.max(0, diffDays(startDate, visStart));
                         if (span <= 0) return null;
                         return (
-                          <div
+                          <button
                             key={bk.id}
-                            title={`${bk.guestName} · ${bk.checkIn} → ${bk.checkOut}`}
+                            onClick={() => openBooking(bk.id)}
+                            title={`${bk.guestName} · ${bk.checkIn} → ${bk.checkOut}${bk.groupId ? " · split stay" : ""}`}
                             className={cn(
-                              "absolute top-1 bottom-1 hairline rounded-[2px] flex items-center px-2 text-[11px] font-medium truncate",
+                              "absolute top-1 bottom-1 hairline rounded-[2px] flex items-center px-2 text-[11px] font-medium truncate cursor-pointer hover:brightness-110 hover:ring-1 hover:ring-foreground transition",
                               CLASS_TOKEN[room.class],
+                              bk.status === "tentative" && "opacity-60",
+                              bk.groupId && "border-dashed",
                             )}
                             style={{
                               left: LABEL_W + realLeft * DAY_W + 2,
                               width: span * DAY_W - 4,
                             }}
                           >
-                            <span className="truncate">{bk.guestName}</span>
+                            <span className="truncate text-left flex-1">{bk.guestName}</span>
                             <span className="ml-2 opacity-80 tabular text-[10px] shrink-0">
                               {bk.guestCountry}
                             </span>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -258,6 +290,9 @@ function Legend() {
           <span>{it.label}</span>
         </div>
       ))}
+      <span className="ml-2 hairline border-dashed px-1.5 py-0.5 text-[10px]">
+        dashed = split stay
+      </span>
     </div>
   );
 }
