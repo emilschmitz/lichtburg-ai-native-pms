@@ -62,18 +62,24 @@ export function TodayView() {
           {arrivals.length === 0 ? (
             <Empty>No arrivals on this date.</Empty>
           ) : (
-            arrivals.map((b) => <BookingRow key={b.id} booking={b} variant="arrival" />)
+            arrivals.map((b) => (
+              <BookingRow key={b.id} booking={b} variant="arrival" onOpen={openBooking} />
+            ))
           )}
         </Section>
         <Section title="Departures" icon={<LogOut className="h-4 w-4" />} count={departures.length}>
           {departures.length === 0 ? (
             <Empty>No departures on this date.</Empty>
           ) : (
-            departures.map((b) => <BookingRow key={b.id} booking={b} variant="departure" />)
+            departures.map((b) => (
+              <BookingRow key={b.id} booking={b} variant="departure" onOpen={openBooking} />
+            ))
           )}
         </Section>
         <Section title="In-house" icon={<Users className="h-4 w-4" />} count={inHouse.length}>
-          {inHouse.map((b) => <BookingRow key={b.id} booking={b} variant="in-house" />)}
+          {inHouse.map((b) => (
+            <BookingRow key={b.id} booking={b} variant="in-house" onOpen={openBooking} />
+          ))}
         </Section>
       </div>
     </div>
