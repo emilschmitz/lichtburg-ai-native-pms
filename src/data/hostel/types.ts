@@ -48,6 +48,14 @@ export interface Booking {
   guestEmail?: string;
   guestPhone?: string;
   guestAddress?: string;
+  /** Optional extras shown in the booking drawer; intentionally sparse. */
+  guestDateOfBirth?: string; // ISO YYYY-MM-DD
+  guestIdDocument?: string; // e.g. "Passport · DE · X1234567"
+  guestLanguage?: string; // e.g. "EN", "DE", "ES"
+  arrivalTimeEstimate?: string; // free-form, e.g. "after 22:00"
+  paymentStatus?: "unpaid" | "deposit" | "paid";
+  channel?: "direct" | "booking.com" | "hostelworld" | "airbnb" | "walk_in" | "expedia";
+  tags?: string[]; // e.g. ["repeat guest", "quiet please"]
   bedId: string;
   /** ISO date YYYY-MM-DD, inclusive. */
   checkIn: string;
