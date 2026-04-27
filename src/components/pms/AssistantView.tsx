@@ -14,9 +14,9 @@ import { useBookings } from "@/lib/pms/bookings-store";
 import type { RoomClass } from "@/data/hostel/types";
 import {
   buildOccupationContext,
-  getAlternativesProvider,
   type AISuggestionsResponse,
 } from "@/lib/ai";
+import { suggestAlternativesStreaming } from "@/lib/ai/openai-provider";
 import { addDaysISO, formatShort } from "@/lib/pms/dates";
 import { ArrowRight, Loader2, Sparkles, Wand2, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
