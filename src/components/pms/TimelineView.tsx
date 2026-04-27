@@ -13,7 +13,7 @@ import {
   BEDS,
   TODAY,
 } from "@/data/hostel";
-import type { Booking, Room } from "@/data/hostel/types";
+import type { Bed, Booking, Room } from "@/data/hostel/types";
 import {
   addDaysISO,
   formatDayNum,
