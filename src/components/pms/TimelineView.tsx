@@ -165,8 +165,21 @@ export function TimelineView() {
           {/* Rooms + beds */}
           {ROOMS.map((room) => {
             const roomBeds = BEDS.filter((b) => b.roomId === room.id);
+            const isPrivate = isPrivateRoom(room);
+
+            // Compute "whole-room blocks" for private rooms: contiguous date
+            // ranges where every bed in the room is occupied by the same
+            // party (same checkIn/checkOut). Render those as a single fat
+            // bar across all bed rows; suppress the per-bed bars.
+            const wholeBlocks = isPrivate
+              ? computeWholeRoomBlocks(room, roomBeds, bookings, startDate, endDate)
+              : [];
+            const mergedBookingIds = new Set(
+              wholeBlocks.flatMap((b) => b.bookings.map((bk) => bk.id)),
+            );
+
             return (
-              <div key={room.id} className="hairline-b">
+              <div key={room.id} className="hairline-b relative">
                 {/* Room header row */}
                 <div
                   className="flex bg-secondary hairline-b sticky left-0 z-10"
@@ -181,6 +194,14 @@ export function TimelineView() {
                     <span className="text-[11px] text-muted-foreground truncate">
                       {room.name}
                     </span>
+                    {isPrivate && (
+                      <span
+                        className="text-[9px] uppercase tracking-wider text-muted-foreground hairline px-1"
+                        title="Private room — sold as a unit, never shared with strangers"
+                      >
+                        whole-room
+                      </span>
+                    )}
                     <span className="ml-auto text-[10px] text-muted-foreground tabular">
                       €{room.pricePerNight}
                     </span>
@@ -209,10 +230,16 @@ export function TimelineView() {
                       </div>
                       {/* Empty-cell click targets for new bookings */}
                       {dates.map((d, di) => {
-                        const occupied = myBookings.some(
+                        // For private rooms, an empty cell on bed B should
+                        // also be considered "occupied" if the room is
+                        // whole-blocked by another party's bed-A booking.
+                        const occupiedHere = myBookings.some(
                           (bk) => bk.checkIn <= d && bk.checkOut > d,
                         );
-                        if (occupied) return null;
+                        const wholeBlocked =
+                          isPrivate &&
+                          wholeBlocks.some((b) => b.from <= d && b.to > d);
+                        if (occupiedHere || wholeBlocked) return null;
                         return (
                           <button
                             key={d}
@@ -234,8 +261,9 @@ export function TimelineView() {
                           </button>
                         );
                       })}
-                      {/* Bookings */}
+                      {/* Bookings — skip ones merged into a whole-room block */}
                       {myBookings.map((bk) => {
+                        if (mergedBookingIds.has(bk.id)) return null;
                         const visEnd = bk.checkOut > endDate ? endDate : bk.checkOut;
                         const visStart = bk.checkIn < startDate ? startDate : bk.checkIn;
                         const span = diffDays(visStart, visEnd);
@@ -265,6 +293,48 @@ export function TimelineView() {
                         );
                       })}
                     </div>
+                  );
+                })}
+
+                {/* Whole-room merged bars — overlay spanning all bed rows.
+                    Bed rows start after the 28px room header, each ROW_H tall. */}
+                {wholeBlocks.map((block) => {
+                  const visStart = block.from < startDate ? startDate : block.from;
+                  const visEnd = block.to > endDate ? endDate : block.to;
+                  const span = diffDays(visStart, visEnd);
+                  if (span <= 0) return null;
+                  const realLeft = Math.max(0, diffDays(startDate, visStart));
+                  const totalBedRowsH = roomBeds.length * ROW_H;
+                  // Topmost booking determines what the click opens
+                  const primary = block.bookings[0];
+                  const label = block.partyLabel;
+                  const everyoneTentative = block.bookings.every(
+                    (b) => b.status === "tentative",
+                  );
+                  return (
+                    <button
+                      key={`whole-${room.id}-${block.from}`}
+                      onClick={() => openBooking(primary.id)}
+                      title={`${label} · whole ${room.name} · ${block.from} → ${block.to}`}
+                      className={cn(
+                        "absolute hairline rounded-[2px] flex items-center px-2 text-[11px] font-semibold cursor-pointer hover:brightness-110 hover:ring-1 hover:ring-foreground transition",
+                        CLASS_TOKEN[room.class],
+                        everyoneTentative && "opacity-60",
+                      )}
+                      style={{
+                        // 28 = room header height, +1 to sit below its border
+                        top: 28 + 2,
+                        height: totalBedRowsH - 4,
+                        left: LABEL_W + realLeft * DAY_W + 2,
+                        width: span * DAY_W - 4,
+                      }}
+                    >
+                      <Layers className="h-3 w-3 mr-1.5 shrink-0 opacity-80" />
+                      <span className="truncate text-left flex-1">{label}</span>
+                      <span className="ml-2 text-[9px] uppercase tracking-wider opacity-80 shrink-0">
+                        whole room
+                      </span>
+                    </button>
                   );
                 })}
               </div>
