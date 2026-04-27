@@ -33,33 +33,28 @@ export interface Bed {
 }
 
 /**
- * A booking groups one or more bed-segments into a single guest stay. A guest
- * may move between beds mid-stay (a "split" stay), but their contact info
- * stays with the booking. Each segment is a contiguous occupation of one bed.
+ * A booking always occupies a specific bed for a date range [checkIn, checkOut).
  *
- * The classic single-bed booking is just a booking with one segment.
+ * A guest stay that spans multiple beds (a "split" stay) is represented as
+ * multiple Booking rows that share the same `groupId`. The UI treats them as
+ * a single guest stay with multiple legs.
  */
-export interface BookingSegment {
-  bedId: string;
-  /** ISO date YYYY-MM-DD, inclusive. */
-  checkIn: string;
-  /** ISO date YYYY-MM-DD, exclusive. */
-  checkOut: string;
-}
-
 export interface Booking {
   id: string;
+  /** When this booking is one leg of a multi-bed stay, all legs share this id. */
+  groupId?: string;
   guestName: string;
   guestCountry: string;
   guestEmail?: string;
   guestPhone?: string;
   guestAddress?: string;
-  /** A booking always occupies one or more bed-segments. */
-  segments: BookingSegment[];
+  bedId: string;
+  /** ISO date YYYY-MM-DD, inclusive. */
+  checkIn: string;
+  /** ISO date YYYY-MM-DD, exclusive (departure morning). */
+  checkOut: string;
   status: "confirmed" | "tentative" | "checked_in" | "checked_out";
   notes?: string;
-  /** Auto-set when the booking spans 2+ different beds. */
-  isSplit?: boolean;
 }
 
 export interface DesiredStay {
