@@ -214,55 +214,53 @@ const seeds: Seed[] = [
     checkIn: T(8), checkOut: T(11), status: "confirmed" },
 
   // ============================================================
-  // GÖRLI EN-SUITE 202 — 2 premium beds (€119)
-  // 202-a — FREE ALL WEEK (Path C, the "no switch but expensive")
-  // 202-b — booked solid
+  // GÖRLI EN-SUITE 202 — 2 premium beds (€119), WHOLE-ROOM only
+  // Sold as a unit to one party. Daniel + Hye-jin honeymoon couple
+  // until T+1, then the entire room is free T+1..T+7 (Path C),
+  // then Alessandro + Giulia couple T+8..T+12.
   // ============================================================
-  // 202-a: previous guest checks out T+1, next arrives T+8 → 7 nights free
   { guestName: "Daniel Park", guestCountry: "KR", bedId: "b-202-a",
     guestEmail: "daniel.park@example.kr", guestPhone: "+82 10 1234 5678",
     guestIdDocument: "Passport · KR · M77881122",
     paymentStatus: "paid", channel: "direct", tags: ["honeymoon"],
     checkIn: T(-2), checkOut: T(1), status: "checked_in",
-    notes: "Champagne already delivered to room." },
-  // free T+1..T+7
-  { guestName: "Alessandro Rossi", guestCountry: "IT", bedId: "b-202-a",
-    checkIn: T(8), checkOut: T(11), status: "confirmed" },
-
+    notes: "Travelling with Hye-jin (202-b). Champagne already delivered." },
   { guestName: "Hye-jin Park", guestCountry: "KR", bedId: "b-202-b",
     guestEmail: "hyejin.p@example.kr", guestLanguage: "EN",
     paymentStatus: "paid", channel: "direct", tags: ["honeymoon"],
     checkIn: T(-2), checkOut: T(1), status: "checked_in",
     notes: "Travelling with Daniel (202-a). Honeymoon." },
-  // 202-b empty T+1..T+3 (entire room free, sellable as couple suite)
+  // Entire room 202 free T+1..T+7 — Path C (premium, no switch)
+  { guestName: "Alessandro Rossi", guestCountry: "IT", bedId: "b-202-a",
+    guestEmail: "a.rossi@example.it", channel: "direct",
+    checkIn: T(8), checkOut: T(12), status: "confirmed",
+    notes: "Travelling with Giulia (202-b)." },
   { guestName: "Giulia Rossi", guestCountry: "IT", bedId: "b-202-b",
     guestEmail: "giulia.rossi@example.it",
-    checkIn: T(4), checkOut: T(12), status: "confirmed",
-    notes: "Travelling with Alessandro (202-a arrives T+8)." },
+    checkIn: T(8), checkOut: T(12), status: "confirmed",
+    notes: "Travelling with Alessandro (202-a)." },
 
   // ============================================================
-  // SKYLINE DORM 301 — 2 beds, mixed (€30, quiet floor)
-  // 301-a free T+4..T+6 — chains with 101 gaps for Path A variants.
-  // 301-b free T+1..T+3 (one extra cheap leg).
+  // SKYLINE TWIN 301 — private twin (€78), WHOLE-ROOM only
+  // Sold as a unit (couples, friends, or solo paying for the room).
+  // Free T+4..T+6 → fits a 3-night couple/solo stay.
   // ============================================================
+  // Tariq books the whole room solo (just bed A occupied; B ghost-blocked).
   { guestName: "Tariq Hassan", guestCountry: "EG", bedId: "b-301-a",
     guestEmail: "tariq.h@example.eg", channel: "expedia",
-    checkIn: T(0), checkOut: T(4), status: "checked_in" },
-  // free T+4, T+5, T+6
+    paymentStatus: "paid",
+    checkIn: T(0), checkOut: T(4), status: "checked_in",
+    notes: "Solo traveller, paid for whole twin room." },
+  // Free T+4..T+6 — entire room available
+  // Leon + Saskia couple take the room T+7..T+10
   { guestName: "Leon Hofer", guestCountry: "CH", bedId: "b-301-a",
-    guestLanguage: "DE",
-    checkIn: T(7), checkOut: T(11), status: "confirmed" },
-
-  // 301-b — gap T+1..T+3
-  { guestName: "Owen Murphy", guestCountry: "IE", bedId: "b-301-b",
-    paymentStatus: "deposit",
-    checkIn: T(-2), checkOut: T(0), status: "checked_out" },
-  // free T+0..T+3
-  { guestName: "Nora Eriksen", guestCountry: "NO", bedId: "b-301-b",
-    guestEmail: "nora.e@example.no", arrivalTimeEstimate: "after 21:00",
-    checkIn: T(4), checkOut: T(7), status: "confirmed" },
+    guestLanguage: "DE", channel: "direct",
+    checkIn: T(7), checkOut: T(10), status: "confirmed",
+    notes: "Travelling with Saskia (301-b)." },
   { guestName: "Saskia de Vries", guestCountry: "NL", bedId: "b-301-b",
-    checkIn: T(7), checkOut: T(10), status: "confirmed" },
+    guestEmail: "saskia.dv@example.nl",
+    checkIn: T(7), checkOut: T(10), status: "confirmed",
+    notes: "Travelling with Leon (301-a)." },
 ];
 
 export const BOOKINGS: Booking[] = seeds.map((b, i) => ({
