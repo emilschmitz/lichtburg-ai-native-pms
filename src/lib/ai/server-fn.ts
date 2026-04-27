@@ -1,8 +1,11 @@
 /**
- * Server function that calls OpenAI with strict JSON-schema structured output.
- *
- * Runs on the server only. The OPENAI_API_KEY secret is read via
- * `process.env.OPENAI_API_KEY`.
+ * Server function that calls OpenAI with strict JSON-schema structured output,
+ * streamed via SSE so the client can show progressive "thinking" output instead
+ * of a blank spinner. The streamed body is a sequence of newline-delimited
+ * JSON events (NDJSON) with shapes:
+ *   { "type": "delta", "text": "..." }     // partial JSON characters
+ *   { "type": "done", "result": { ... } }  // final parsed AISuggestionsResponse
+ *   { "type": "error", "message": "..." }
  */
 
 import { createServerFn } from "@tanstack/react-start";
@@ -18,27 +21,35 @@ interface Input {
   context: OccupationContext;
 }
 
-const SYSTEM_PROMPT = `You are the booking assistant for a small Berlin hostel PMS.
-The operator gives you (a) a desired stay (possibly described in natural language)
-and (b) a snapshot of the rooms, beds, and current bookings overlapping the desired window.
+const SYSTEM_PROMPT = `You are the booking assistant for a small Berlin hostel PMS. Be FAST.
 
-You also receive a list of "candidate alternatives" produced by a deterministic
-graph search. These are GUARANTEED to be valid (no overlaps, fully cover the
-requested range). Your job is to:
+Inputs you receive:
+  - desired: the operator's request (often natural language).
+  - context.rooms: every room with its beds, class, capacity, price/night.
+  - context.bookings: every booking overlapping the requested window. A bed is
+    free on a night iff no booking covers that night on that bedId.
+  - context.candidateAlternatives: deterministic seed sequences. Use as a hint,
+    not gospel — feel free to discard, re-rank, or replace them.
 
-  1. Parse the desired stay into structured fields (resolvedStay).
-  2. Re-rank, refine, and explain the candidates as suggestions.
-  3. Optionally synthesize 1-2 NEW suggestions if you can find a better
-     combination using the rooms/bookings snapshot. Any leg you propose MUST
-     reference a real bedId from the rooms snapshot, must not overlap any
-     existing booking on that bed, and the legs of a suggestion must be
-     contiguous and cover the full requested range with no gap.
-  4. Make the trade-offs concrete and operator-facing (e.g. "Pay €78 more for
-     a private en-suite for the second half" rather than vague language).
-  5. Keep totals consistent: totalNights = sum of leg nights;
-     totalPrice = sum(leg.nights * leg.pricePerNight); switches = legs.length - 1.
+CRITICAL RULES for any "suggestion" you return:
+  1. Each suggestion is a list of "legs". Each leg = one bed for a contiguous
+     date range. The legs together must cover the full requested date range
+     with NO gap and NO overlap (leg[i].to === leg[i+1].from).
+  2. Different legs CAN AND SHOULD be in DIFFERENT ROOMS when that's what it
+     takes to fit the guest in. The guest physically moves between rooms.
+     Combining beds across multiple rooms is normal and expected — do not
+     restrict yourself to single-room or single-class solutions.
+  3. Every leg's bedId MUST exist in context.rooms and MUST NOT overlap any
+     existing booking on that bedId.
+  4. Keep totals consistent: totalNights = sum(leg.nights);
+     totalPrice = sum(leg.nights * leg.pricePerNight);
+     switches = legs.length - 1.
+  5. tradeoffs are concrete and operator-facing, e.g.
+     "Switch rooms once on Wed morning" or "€24 cheaper but in a 6-bed dorm
+     for the first 2 nights".
 
-Return at most 4 suggestions. Sort them best-first.`;
+Return 2–4 suggestions, best-first. Be quick: do minimal reasoning, prefer
+short rationales. Don't over-deliberate.`;
 
 const JSON_SCHEMA = {
   name: "alternatives_response",
@@ -141,83 +152,148 @@ const JSON_SCHEMA = {
   },
 } as const;
 
-export const suggestAlternativesServerFn = createServerFn({ method: "POST" })
+function ndjson(obj: unknown) {
+  return new TextEncoder().encode(JSON.stringify(obj) + "\n");
+}
+
+async function deterministicFallback(data: Input, reason: string) {
+  const fallback = await deterministicProvider.suggestAlternatives(data);
+  return {
+    ...fallback,
+    summary: `${reason} — showing local algorithmic alternatives instead. ${fallback.summary}`,
+    provider: "openai-fallback-deterministic",
+  } as AISuggestionsResponse;
+}
+
+export const suggestAlternativesServerFn = createServerFn({
+  method: "POST",
+  response: "raw",
+})
   .inputValidator((data: Input) => {
     if (!data || typeof data !== "object") throw new Error("Invalid input");
     if (!data.context || !data.desired) throw new Error("Missing context or desired");
     return data;
   })
-  .handler(async ({ data }): Promise<AISuggestionsResponse> => {
+  .handler(async ({ data }) => {
     const apiKey = process.env.OPENAI_API_KEY;
 
-    // Graceful fallback — if no key, just use deterministic so the UI still works.
-    if (!apiKey) {
-      console.warn("[ai] OPENAI_API_KEY not set; falling back to deterministic provider");
-      return deterministicProvider.suggestAlternatives(data);
-    }
-
-    const userMessage = JSON.stringify(
-      {
-        desired: data.desired,
-        context: {
-          windowStart: data.context.windowStart,
-          windowEnd: data.context.windowEnd,
-          rooms: data.context.rooms,
-          bookings: data.context.bookings,
-          candidateAlternatives: data.context.candidateAlternatives,
-        },
-      },
-      null,
-      2,
-    );
-
-    try {
-      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-5.5",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userMessage },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: JSON_SCHEMA,
-          },
-        }),
-      });
-
-      if (!resp.ok) {
-        const text = await resp.text();
-        console.error("[ai] OpenAI error", resp.status, text);
-        // Fall back to deterministic so the operator still sees something.
-        const fallback = await deterministicProvider.suggestAlternatives(data);
-        return {
-          ...fallback,
-          summary:
-            "AI provider unavailable — showing local algorithmic alternatives instead. " +
-            fallback.summary,
-          provider: "openai-fallback-deterministic",
+    const stream = new ReadableStream({
+      async start(controller) {
+        const finishWithFallback = async (reason: string) => {
+          const result = await deterministicFallback(data, reason);
+          controller.enqueue(ndjson({ type: "done", result }));
+          controller.close();
         };
-      }
 
-      const json = await resp.json();
-      const content: string = json.choices?.[0]?.message?.content ?? "";
-      const parsed = JSON.parse(content);
-      return { ...parsed, provider: "openai" } as AISuggestionsResponse;
-    } catch (err) {
-      console.error("[ai] OpenAI call failed:", err);
-      const fallback = await deterministicProvider.suggestAlternatives(data);
-      return {
-        ...fallback,
-        summary:
-          "AI request failed — showing local algorithmic alternatives instead. " +
-          fallback.summary,
-        provider: "openai-fallback-deterministic",
-      };
-    }
+        if (!apiKey) {
+          console.warn("[ai] OPENAI_API_KEY not set; using deterministic provider");
+          await finishWithFallback("AI provider not configured");
+          return;
+        }
+
+        const userMessage = JSON.stringify({
+          desired: data.desired,
+          context: {
+            windowStart: data.context.windowStart,
+            windowEnd: data.context.windowEnd,
+            rooms: data.context.rooms,
+            bookings: data.context.bookings,
+            candidateAlternatives: data.context.candidateAlternatives,
+          },
+        });
+
+        let resp: Response;
+        try {
+          resp = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "gpt-5.5",
+              stream: true,
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                { role: "user", content: userMessage },
+              ],
+              response_format: {
+                type: "json_schema",
+                json_schema: JSON_SCHEMA,
+              },
+            }),
+          });
+        } catch (err) {
+          console.error("[ai] OpenAI fetch failed:", err);
+          await finishWithFallback("AI request failed");
+          return;
+        }
+
+        if (!resp.ok || !resp.body) {
+          const text = await resp.text().catch(() => "");
+          console.error("[ai] OpenAI error", resp.status, text);
+          await finishWithFallback(`AI provider error (${resp.status})`);
+          return;
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let sseBuffer = "";
+        let fullText = "";
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            sseBuffer += decoder.decode(value, { stream: true });
+
+            // SSE events are separated by blank lines.
+            const events = sseBuffer.split("\n\n");
+            sseBuffer = events.pop() ?? "";
+            for (const evt of events) {
+              for (const line of evt.split("\n")) {
+                if (!line.startsWith("data:")) continue;
+                const payload = line.slice(5).trim();
+                if (!payload || payload === "[DONE]") continue;
+                try {
+                  const json = JSON.parse(payload);
+                  const delta: string | undefined =
+                    json.choices?.[0]?.delta?.content;
+                  if (delta) {
+                    fullText += delta;
+                    controller.enqueue(ndjson({ type: "delta", text: delta }));
+                  }
+                } catch {
+                  // ignore malformed chunk
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error("[ai] OpenAI stream read failed:", err);
+          await finishWithFallback("AI stream interrupted");
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(fullText);
+          const result: AISuggestionsResponse = {
+            ...parsed,
+            provider: "openai",
+          };
+          controller.enqueue(ndjson({ type: "done", result }));
+          controller.close();
+        } catch (err) {
+          console.error("[ai] Failed to parse final JSON:", err, fullText.slice(0, 500));
+          await finishWithFallback("AI returned malformed JSON");
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    });
   });
