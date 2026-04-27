@@ -23,24 +23,22 @@ export const NEXT_WEEK_END = addDays(TODAY, 8);
 /**
  * Design intent for the AI to have something interesting to solve.
  *
- * Hostel total: 17 beds × 7 nights = 119 bed-nights.
- * Booked next week: ~95 (≈80% occupancy — feels full but not impossible).
- * Free per night: every single night T+1..T+7 has ≥3 free beds, spread
- * across at least 2 different room classes.
+ * Hostel: 17 beds, but private rooms (102 single, 103 double, 202 en-suite,
+ * 301 twin) are sold WHOLE-ROOM only — strangers never share them. Dorms
+ * (101 mixed, 201 female) remain bed-level.
  *
- * For a "7 nights, cheap as possible" query the AI should be able to
- * surface MULTIPLE distinct trade-off paths, e.g.:
+ * For a "7 nights, cheap as possible" query the AI should surface MULTIPLE
+ * distinct trade-off paths, e.g.:
  *
- *   A. CHEAPEST, many switches — bounce across mixed dorms (3 switches,
- *      ~€29/night avg). Annoying but cheap.
- *   B. ONE SWITCH, mid budget — start in a mixed dorm, move to the single
- *      private (102) mid-week. Quieter second half, ~€45/night avg.
- *   C. PREMIUM, NO SWITCH — en-suite 202 bed A free all 7 nights.
- *      Most expensive (~€119/night) but zero hassle.
- *   D. FEMALE-ONLY, one switch — Mauerpark 201 has a path with one swap.
- *   E. PRIVATE DOUBLE, two switches — Tempelhof 103 with bed-pair churn.
+ *   A. CHEAPEST, many switches — bounce across mixed dorm beds in 101
+ *      (~€28/night). Annoying but cheapest.
+ *   B. ONE SWITCH, mid budget — start in a dorm, move to single private
+ *      102 mid-week. Quieter second half, ~€45/night avg.
+ *   C. PREMIUM, NO SWITCH — en-suite 202 free all 7 nights as a whole room
+ *      (~€119/night). Zero hassle, highest price.
+ *   D. FEMALE-ONLY, one switch — Mauerpark 201 path with one swap.
  *
- * No single bed is free for the entire week EXCEPT 202-a (premium), so
+ * No single bed is free for the entire week EXCEPT the en-suite 202, so
  * the AI must reason about chains for any cheap/mid request.
  */
 
