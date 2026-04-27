@@ -9,38 +9,120 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PmsRouteImport } from './routes/pms'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PmsIndexRouteImport } from './routes/pms.index'
+import { Route as PmsTodayRouteImport } from './routes/pms.today'
+import { Route as PmsTimelineRouteImport } from './routes/pms.timeline'
+import { Route as PmsFloorPlanRouteImport } from './routes/pms.floor-plan'
+import { Route as PmsAssistantRouteImport } from './routes/pms.assistant'
 
+const PmsRoute = PmsRouteImport.update({
+  id: '/pms',
+  path: '/pms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PmsIndexRoute = PmsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PmsRoute,
+} as any)
+const PmsTodayRoute = PmsTodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => PmsRoute,
+} as any)
+const PmsTimelineRoute = PmsTimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
+  getParentRoute: () => PmsRoute,
+} as any)
+const PmsFloorPlanRoute = PmsFloorPlanRouteImport.update({
+  id: '/floor-plan',
+  path: '/floor-plan',
+  getParentRoute: () => PmsRoute,
+} as any)
+const PmsAssistantRoute = PmsAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => PmsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/pms': typeof PmsRouteWithChildren
+  '/pms/assistant': typeof PmsAssistantRoute
+  '/pms/floor-plan': typeof PmsFloorPlanRoute
+  '/pms/timeline': typeof PmsTimelineRoute
+  '/pms/today': typeof PmsTodayRoute
+  '/pms/': typeof PmsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/pms/assistant': typeof PmsAssistantRoute
+  '/pms/floor-plan': typeof PmsFloorPlanRoute
+  '/pms/timeline': typeof PmsTimelineRoute
+  '/pms/today': typeof PmsTodayRoute
+  '/pms': typeof PmsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/pms': typeof PmsRouteWithChildren
+  '/pms/assistant': typeof PmsAssistantRoute
+  '/pms/floor-plan': typeof PmsFloorPlanRoute
+  '/pms/timeline': typeof PmsTimelineRoute
+  '/pms/today': typeof PmsTodayRoute
+  '/pms/': typeof PmsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/pms'
+    | '/pms/assistant'
+    | '/pms/floor-plan'
+    | '/pms/timeline'
+    | '/pms/today'
+    | '/pms/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/pms/assistant'
+    | '/pms/floor-plan'
+    | '/pms/timeline'
+    | '/pms/today'
+    | '/pms'
+  id:
+    | '__root__'
+    | '/'
+    | '/pms'
+    | '/pms/assistant'
+    | '/pms/floor-plan'
+    | '/pms/timeline'
+    | '/pms/today'
+    | '/pms/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PmsRoute: typeof PmsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pms': {
+      id: '/pms'
+      path: '/pms'
+      fullPath: '/pms'
+      preLoaderRoute: typeof PmsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +130,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pms/': {
+      id: '/pms/'
+      path: '/'
+      fullPath: '/pms/'
+      preLoaderRoute: typeof PmsIndexRouteImport
+      parentRoute: typeof PmsRoute
+    }
+    '/pms/today': {
+      id: '/pms/today'
+      path: '/today'
+      fullPath: '/pms/today'
+      preLoaderRoute: typeof PmsTodayRouteImport
+      parentRoute: typeof PmsRoute
+    }
+    '/pms/timeline': {
+      id: '/pms/timeline'
+      path: '/timeline'
+      fullPath: '/pms/timeline'
+      preLoaderRoute: typeof PmsTimelineRouteImport
+      parentRoute: typeof PmsRoute
+    }
+    '/pms/floor-plan': {
+      id: '/pms/floor-plan'
+      path: '/floor-plan'
+      fullPath: '/pms/floor-plan'
+      preLoaderRoute: typeof PmsFloorPlanRouteImport
+      parentRoute: typeof PmsRoute
+    }
+    '/pms/assistant': {
+      id: '/pms/assistant'
+      path: '/assistant'
+      fullPath: '/pms/assistant'
+      preLoaderRoute: typeof PmsAssistantRouteImport
+      parentRoute: typeof PmsRoute
+    }
   }
 }
 
+interface PmsRouteChildren {
+  PmsAssistantRoute: typeof PmsAssistantRoute
+  PmsFloorPlanRoute: typeof PmsFloorPlanRoute
+  PmsTimelineRoute: typeof PmsTimelineRoute
+  PmsTodayRoute: typeof PmsTodayRoute
+  PmsIndexRoute: typeof PmsIndexRoute
+}
+
+const PmsRouteChildren: PmsRouteChildren = {
+  PmsAssistantRoute: PmsAssistantRoute,
+  PmsFloorPlanRoute: PmsFloorPlanRoute,
+  PmsTimelineRoute: PmsTimelineRoute,
+  PmsTodayRoute: PmsTodayRoute,
+  PmsIndexRoute: PmsIndexRoute,
+}
+
+const PmsRouteWithChildren = PmsRoute._addFileChildren(PmsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PmsRoute: PmsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
