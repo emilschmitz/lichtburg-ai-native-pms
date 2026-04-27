@@ -20,7 +20,7 @@ import { ROOMS, BEDS, ROOM_CLASS_LABEL, TODAY } from "@/data/hostel";
 import type { Booking } from "@/data/hostel/types";
 import { useBookings } from "@/lib/pms/bookings-store";
 import { usePmsUi } from "@/lib/pms/ui-store";
-import { roomForBed } from "@/lib/pms/availability";
+import { isPrivateRoom, roomForBed } from "@/lib/pms/availability";
 import { addDaysISO, diffDays, formatShort } from "@/lib/pms/dates";
 import {
   X,
