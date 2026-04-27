@@ -16,6 +16,7 @@ import { Route as PmsTodayRouteImport } from './routes/pms.today'
 import { Route as PmsTimelineRouteImport } from './routes/pms.timeline'
 import { Route as PmsFloorPlanRouteImport } from './routes/pms.floor-plan'
 import { Route as PmsAssistantRouteImport } from './routes/pms.assistant'
+import { Route as ApiAiAlternativesRouteImport } from './routes/api.ai.alternatives'
 
 const PmsRoute = PmsRouteImport.update({
   id: '/pms',
@@ -52,6 +53,11 @@ const PmsAssistantRoute = PmsAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => PmsRoute,
 } as any)
+const ApiAiAlternativesRoute = ApiAiAlternativesRouteImport.update({
+  id: '/api/ai/alternatives',
+  path: '/api/ai/alternatives',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/pms/timeline': typeof PmsTimelineRoute
   '/pms/today': typeof PmsTodayRoute
   '/pms/': typeof PmsIndexRoute
+  '/api/ai/alternatives': typeof ApiAiAlternativesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/pms/timeline': typeof PmsTimelineRoute
   '/pms/today': typeof PmsTodayRoute
   '/pms': typeof PmsIndexRoute
+  '/api/ai/alternatives': typeof ApiAiAlternativesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/pms/timeline': typeof PmsTimelineRoute
   '/pms/today': typeof PmsTodayRoute
   '/pms/': typeof PmsIndexRoute
+  '/api/ai/alternatives': typeof ApiAiAlternativesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/pms/timeline'
     | '/pms/today'
     | '/pms/'
+    | '/api/ai/alternatives'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/pms/timeline'
     | '/pms/today'
     | '/pms'
+    | '/api/ai/alternatives'
   id:
     | '__root__'
     | '/'
@@ -107,11 +118,13 @@ export interface FileRouteTypes {
     | '/pms/timeline'
     | '/pms/today'
     | '/pms/'
+    | '/api/ai/alternatives'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PmsRoute: typeof PmsRouteWithChildren
+  ApiAiAlternativesRoute: typeof ApiAiAlternativesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PmsAssistantRouteImport
       parentRoute: typeof PmsRoute
     }
+    '/api/ai/alternatives': {
+      id: '/api/ai/alternatives'
+      path: '/api/ai/alternatives'
+      fullPath: '/api/ai/alternatives'
+      preLoaderRoute: typeof ApiAiAlternativesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -189,6 +209,7 @@ const PmsRouteWithChildren = PmsRoute._addFileChildren(PmsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PmsRoute: PmsRouteWithChildren,
+  ApiAiAlternativesRoute: ApiAiAlternativesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
