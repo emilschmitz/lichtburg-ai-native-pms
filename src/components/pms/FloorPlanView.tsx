@@ -4,7 +4,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { ROOMS, BEDS, BOOKINGS, TODAY } from "@/data/hostel";
+import { ROOMS, BEDS, TODAY } from "@/data/hostel";
 import { addDaysISO, formatShort, rangeDates } from "@/lib/pms/dates";
 import {
   bookingForBedOnNight,
@@ -13,6 +13,8 @@ import {
 } from "@/lib/pms/availability";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBookings } from "@/lib/pms/bookings-store";
+import { usePmsUi } from "@/lib/pms/ui-store";
 
 const CELL_PX = 36;
 const CLASS_TOKEN: Record<string, string> = {
@@ -24,10 +26,12 @@ const CLASS_TOKEN: Record<string, string> = {
 };
 
 export function FloorPlanView() {
+  const { bookings } = useBookings();
+  const { openBooking, openNewBooking } = usePmsUi();
   const [date, setDate] = useState<string>(TODAY);
   const dates = useMemo(() => rangeDates(addDaysISO(TODAY, -2), addDaysISO(TODAY, 14)), []);
-  const occ = useMemo(() => nightOccupancy(BEDS, BOOKINGS, date), [date]);
-  const inHouse = useMemo(() => inHouseOn(BOOKINGS, date), [date]);
+  const occ = useMemo(() => nightOccupancy(BEDS, bookings, date), [date, bookings]);
+  const inHouse = useMemo(() => inHouseOn(bookings, date), [date, bookings]);
 
   const floors = [0, 1, 2] as const;
 
