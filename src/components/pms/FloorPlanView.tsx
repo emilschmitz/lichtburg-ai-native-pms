@@ -73,7 +73,7 @@ export function FloorPlanView() {
       {/* Mini date strip for quick scanning */}
       <div className="hairline-b bg-background px-4 py-2 flex gap-1 overflow-x-auto shrink-0">
         {dates.map((d) => {
-          const pct = nightOccupancy(BEDS, BOOKINGS, d);
+          const pct = nightOccupancy(BEDS, bookings, d);
           const active = d === date;
           const isToday = d === TODAY;
           return (
@@ -157,17 +157,26 @@ export function FloorPlanView() {
                           }}
                         >
                           {roomBeds.map((bed) => {
-                            const bk = bookingForBedOnNight(BOOKINGS, bed.id, date);
+                            const bk = bookingForBedOnNight(bookings, bed.id, date);
                             return (
-                              <div
+                              <button
                                 key={bed.id}
+                                onClick={() =>
+                                  bk
+                                    ? openBooking(bk.id)
+                                    : openNewBooking({
+                                        bedId: bed.id,
+                                        checkIn: date,
+                                        checkOut: addDaysISO(date, 1),
+                                      })
+                                }
                                 title={
                                   bk
-                                    ? `${bk.guestName} · ${bk.checkIn} → ${bk.checkOut}`
-                                    : `${bed.label} · free`
+                                    ? `${bk.guestName} · ${bk.checkIn} → ${bk.checkOut} · click to manage`
+                                    : `${bed.label} · free · click to book`
                                 }
                                 className={cn(
-                                  "hairline text-[9px] leading-tight p-1 flex flex-col justify-end overflow-hidden",
+                                  "hairline text-[9px] leading-tight p-1 flex flex-col justify-end overflow-hidden text-left hover:ring-1 hover:ring-foreground transition",
                                   bk
                                     ? "bg-occ-occupied text-occ-occupied-foreground"
                                     : "bg-occ-available text-foreground",
@@ -179,7 +188,7 @@ export function FloorPlanView() {
                                 ) : (
                                   <div className="font-semibold uppercase tracking-wider opacity-80">free</div>
                                 )}
-                              </div>
+                              </button>
                             );
                           })}
                         </div>
