@@ -144,10 +144,25 @@ export function NewBookingDialog() {
     [legAnalyses],
   );
   const continuityWarning = useMemo(() => {
-    for (let i = 1; i < sortedLegs.length; i++) {
-      if (sortedLegs[i].leg.checkIn !== sortedLegs[i - 1].leg.checkOut) {
-        return `Leg ${i} ends ${sortedLegs[i - 1].leg.checkOut} but next leg starts ${sortedLegs[i].leg.checkIn} — there's a gap or overlap in the stay.`;
+    // The legs together must cover ONE contiguous date range. Parallel legs
+    // on different beds (same dates) are allowed — that's a whole-room stay.
+    // We merge overlapping ranges; if the result is a single interval, OK.
+    const ranges = sortedLegs
+      .filter((l) => l.datesValid)
+      .map((l) => ({ from: l.leg.checkIn, to: l.leg.checkOut }))
+      .sort((a, z) => a.from.localeCompare(z.from));
+    if (ranges.length <= 1) return null;
+    const merged: { from: string; to: string }[] = [ranges[0]];
+    for (let i = 1; i < ranges.length; i++) {
+      const last = merged[merged.length - 1];
+      if (ranges[i].from <= last.to) {
+        if (ranges[i].to > last.to) last.to = ranges[i].to;
+      } else {
+        merged.push(ranges[i]);
       }
+    }
+    if (merged.length > 1) {
+      return `Stay isn't continuous: there's a gap between ${merged[0].to} and ${merged[1].from}.`;
     }
     return null;
   }, [sortedLegs]);
