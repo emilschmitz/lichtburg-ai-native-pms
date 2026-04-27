@@ -4,7 +4,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { BEDS, BOOKINGS, ROOMS, TODAY, ROOM_CLASS_LABEL } from "@/data/hostel";
+import { BEDS, ROOMS, TODAY, ROOM_CLASS_LABEL } from "@/data/hostel";
 import {
   arrivalsOn,
   departuresOn,
@@ -15,12 +15,16 @@ import { addDaysISO, formatShort } from "@/lib/pms/dates";
 import { ChevronLeft, ChevronRight, LogIn, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Booking } from "@/data/hostel/types";
+import { useBookings } from "@/lib/pms/bookings-store";
+import { usePmsUi } from "@/lib/pms/ui-store";
 
 export function TodayView() {
+  const { bookings } = useBookings();
+  const { openBooking } = usePmsUi();
   const [date, setDate] = useState<string>(TODAY);
-  const arrivals = useMemo(() => arrivalsOn(BOOKINGS, date), [date]);
-  const departures = useMemo(() => departuresOn(BOOKINGS, date), [date]);
-  const inHouse = useMemo(() => inHouseOn(BOOKINGS, date), [date]);
+  const arrivals = useMemo(() => arrivalsOn(bookings, date), [date, bookings]);
+  const departures = useMemo(() => departuresOn(bookings, date), [date, bookings]);
+  const inHouse = useMemo(() => inHouseOn(bookings, date), [date, bookings]);
 
   return (
     <div className="flex flex-col h-full">
@@ -58,18 +62,24 @@ export function TodayView() {
           {arrivals.length === 0 ? (
             <Empty>No arrivals on this date.</Empty>
           ) : (
-            arrivals.map((b) => <BookingRow key={b.id} booking={b} variant="arrival" />)
+            arrivals.map((b) => (
+              <BookingRow key={b.id} booking={b} variant="arrival" onOpen={openBooking} />
+            ))
           )}
         </Section>
         <Section title="Departures" icon={<LogOut className="h-4 w-4" />} count={departures.length}>
           {departures.length === 0 ? (
             <Empty>No departures on this date.</Empty>
           ) : (
-            departures.map((b) => <BookingRow key={b.id} booking={b} variant="departure" />)
+            departures.map((b) => (
+              <BookingRow key={b.id} booking={b} variant="departure" onOpen={openBooking} />
+            ))
           )}
         </Section>
         <Section title="In-house" icon={<Users className="h-4 w-4" />} count={inHouse.length}>
-          {inHouse.map((b) => <BookingRow key={b.id} booking={b} variant="in-house" />)}
+          {inHouse.map((b) => (
+            <BookingRow key={b.id} booking={b} variant="in-house" onOpen={openBooking} />
+          ))}
         </Section>
       </div>
     </div>
@@ -116,14 +126,19 @@ function Empty({ children }: { children: React.ReactNode }) {
 function BookingRow({
   booking,
   variant,
+  onOpen,
 }: {
   booking: Booking;
   variant: "arrival" | "departure" | "in-house";
+  onOpen: (id: string) => void;
 }) {
   const room = roomForBed(ROOMS, BEDS, booking.bedId);
   const bed = BEDS.find((b) => b.id === booking.bedId);
   return (
-    <div className="px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50">
+    <button
+      onClick={() => onOpen(booking.id)}
+      className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-muted/50"
+    >
       <div
         className={cn(
           "h-1.5 w-1.5 hairline shrink-0",
@@ -142,6 +157,6 @@ function BookingRow({
         <div>{booking.checkIn} → {booking.checkOut}</div>
         <div className="font-mono uppercase">{booking.status.replace("_", " ")}</div>
       </div>
-    </div>
+    </button>
   );
 }

@@ -51,8 +51,12 @@ const seeds: Seed[] = [
   // ============================================================
   // 101-1t: A→B (one switch) — covers all 7 nights via 2 guests
   { guestName: "Liam O'Connor", guestCountry: "IE", bedId: "b-101-1t",
-    checkIn: T(0), checkOut: T(4), status: "checked_in" },
+    guestEmail: "liam.oconnor@example.ie", guestPhone: "+353 87 555 0143",
+    guestAddress: "12 Patrick St, Dublin 8, Ireland",
+    checkIn: T(0), checkOut: T(4), status: "checked_in",
+    notes: "Arriving late, requested key in safe box." },
   { guestName: "Marta Kowalski", guestCountry: "PL", bedId: "b-101-1t",
+    guestEmail: "m.kowalski@example.pl",
     checkIn: T(4), checkOut: T(10), status: "confirmed" },
 
   // 101-1b: GAP on T+1..T+3 (3 nights free) — Path A leg #1 lives here

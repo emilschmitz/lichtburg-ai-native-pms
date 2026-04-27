@@ -1,7 +1,11 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { ComponentType, SVGProps } from "react";
 import { HOSTEL_INFO } from "@/data/hostel";
-import { CalendarRange, LayoutGrid, Sparkles, ListChecks } from "lucide-react";
+import { CalendarRange, LayoutGrid, Sparkles, ListChecks, Plus } from "lucide-react";
+import { BookingsProvider } from "@/lib/pms/bookings-store";
+import { PmsUiProvider, usePmsUi } from "@/lib/pms/ui-store";
+import { BookingDrawer } from "./BookingDrawer";
+import { NewBookingDialog } from "./NewBookingDialog";
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -16,17 +20,30 @@ const NAV: NavItem[] = [
   { to: "/pms/timeline", label: "Timeline", icon: CalendarRange, hint: "Rooms × dates strip" },
   { to: "/pms/floor-plan", label: "Floor plan", icon: LayoutGrid, hint: "Visual occupancy" },
   { to: "/pms/today", label: "Today", icon: ListChecks, hint: "Arrivals & departures" },
-  { to: "/pms/assistant", label: "AI Assistant", icon: Sparkles, hint: "Find alternatives" },
+  { to: "/pms/assistant", label: "AI Assistant", icon: Sparkles, hint: "Find booking configuration" },
 ];
 
 export function PmsShell({ children }: { children: React.ReactNode }) {
-  const loc = useLocation();
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <TopBar />
+    <BookingsProvider>
+      <PmsUiProvider>
+        <Layout>{children}</Layout>
+        <BookingDrawer />
+        <NewBookingDialog />
+      </PmsUiProvider>
+    </BookingsProvider>
+  );
+}
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const loc = useLocation();
+  const { openNewBooking } = usePmsUi();
+  return (
+    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+      <TopBar onNewBooking={() => openNewBooking()} />
       <div className="flex-1 flex min-h-0">
-        <aside className="w-56 hairline-r bg-sidebar shrink-0 flex flex-col">
-          <nav className="flex flex-col p-2 gap-0.5">
+        <aside className="w-56 hairline-r bg-sidebar shrink-0 flex flex-col min-h-0">
+          <nav className="flex flex-col p-2 gap-0.5 overflow-auto">
             {NAV.map((item) => {
               const active = loc.pathname === item.to;
               const Icon = item.icon;
@@ -57,7 +74,7 @@ export function PmsShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          <div className="mt-auto p-3 hairline-t text-[11px] text-muted-foreground tabular leading-relaxed">
+          <div className="mt-auto p-3 hairline-t text-[11px] text-muted-foreground tabular leading-relaxed shrink-0">
             <div className="font-medium text-foreground">{HOSTEL_INFO.name}</div>
             <div>{HOSTEL_INFO.address}</div>
             <div>{HOSTEL_INFO.totalBeds} beds · 6 rooms</div>
@@ -69,7 +86,7 @@ export function PmsShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TopBar() {
+function TopBar({ onNewBooking }: { onNewBooking: () => void }) {
   return (
     <header className="hairline-b bg-card flex items-stretch h-12 shrink-0">
       <div className="w-56 hairline-r flex items-center px-4 gap-2">
@@ -89,8 +106,14 @@ function TopBar() {
           </span>
         </span>
       </div>
-      <div className="flex items-center px-4 gap-3 hairline-l">
-        <span className="text-[11px] text-muted-foreground">Operator</span>
+      <div className="flex items-center px-3 gap-2 hairline-l">
+        <button
+          onClick={onNewBooking}
+          className="hairline px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider bg-foreground text-background flex items-center gap-1.5 hover:opacity-90"
+        >
+          <Plus className="h-3.5 w-3.5" /> New booking
+        </button>
+        <span className="text-[11px] text-muted-foreground ml-2">Operator</span>
         <div className="h-7 w-7 hairline rounded-full bg-accent text-accent-foreground flex items-center justify-center text-[11px] font-medium">
           AM
         </div>

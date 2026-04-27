@@ -1,32 +1,26 @@
 /**
  * AI Assistant view — operator types a desired stay (natural language or
- * structured form), the AI returns ranked alternatives with trade-offs.
- *
- * Calls into `@/lib/ai` only — never imports a specific provider directly.
+ * structured form) and the AI returns ranked booking configurations
+ * (sequences of beds that together cover the stay).
  */
 
 import { useState } from "react";
 import {
   ROOMS,
   BEDS,
-  BOOKINGS,
-  TODAY,
   ROOM_CLASS_LABEL,
-  NEXT_WEEK_START,
-  NEXT_WEEK_END,
 } from "@/data/hostel";
+import { useBookings } from "@/lib/pms/bookings-store";
 import type { RoomClass } from "@/data/hostel/types";
 import {
   buildOccupationContext,
   getAlternativesProvider,
-  listProviders,
-  setActiveProvider,
   type AISuggestionsResponse,
-  type ProviderId,
 } from "@/lib/ai";
 import { addDaysISO, formatShort } from "@/lib/pms/dates";
-import { ArrowRight, Loader2, Sparkles, Wand2, ChevronRight } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Wand2, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePmsUi } from "@/lib/pms/ui-store";
 
 const CLASS_TOKEN: Record<string, string> = {
   shared_mixed: "bg-class-shared",
@@ -37,14 +31,14 @@ const CLASS_TOKEN: Record<string, string> = {
 };
 
 export function AssistantView() {
-  const [naturalLanguage, setNaturalLanguage] = useState(
-    `Solo traveler "Mr. Sato" wants to stay the full next week (${NEXT_WEEK_START} to ${NEXT_WEEK_END}). Prefers a mixed shared dorm but is open to alternatives if needed.`,
-  );
-  const [checkIn, setCheckIn] = useState(NEXT_WEEK_START);
-  const [checkOut, setCheckOut] = useState(NEXT_WEEK_END);
-  const [guests, setGuests] = useState(1);
-  const [preferredClass, setPreferredClass] = useState<RoomClass | "">("shared_mixed");
-  const [providerId, setProviderId] = useState<ProviderId>("openai");
+  const { bookings } = useBookings();
+  const { openNewBooking } = usePmsUi();
+
+  const [naturalLanguage, setNaturalLanguage] = useState("");
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [guests, setGuests] = useState<number | "">("");
+  const [preferredClass, setPreferredClass] = useState<RoomClass | "">("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AISuggestionsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,24 +47,26 @@ export function AssistantView() {
     setLoading(true);
     setError(null);
     try {
-      setActiveProvider(providerId);
-      const provider = getAlternativesProvider(providerId);
+      // Use a wide window if dates are missing, so the AI still has context.
+      const winStart = checkIn || addDaysISO(new Date().toISOString().slice(0, 10), 0);
+      const winEnd = checkOut || addDaysISO(winStart, 14);
+      const provider = getAlternativesProvider();
       const context = buildOccupationContext({
         rooms: ROOMS,
         beds: BEDS,
-        bookings: BOOKINGS,
-        windowStart: addDaysISO(checkIn, -1),
-        windowEnd: addDaysISO(checkOut, 1),
-        desiredCheckIn: checkIn,
-        desiredCheckOut: checkOut,
+        bookings,
+        windowStart: addDaysISO(winStart, -1),
+        windowEnd: addDaysISO(winEnd, 1),
+        desiredCheckIn: checkIn || undefined,
+        desiredCheckOut: checkOut || undefined,
         preferredClass: preferredClass || undefined,
       });
       const out = await provider.suggestAlternatives({
         desired: {
-          naturalLanguage,
-          checkIn,
-          checkOut,
-          guests,
+          naturalLanguage: naturalLanguage || undefined,
+          checkIn: checkIn || undefined,
+          checkOut: checkOut || undefined,
+          guests: typeof guests === "number" ? guests : undefined,
           preferredClass: preferredClass || undefined,
         },
         context,
@@ -82,6 +78,21 @@ export function AssistantView() {
       setLoading(false);
     }
   }
+
+  function handleBookSuggestion(s: AISuggestionsResponse["suggestions"][number]) {
+    // Open the New Booking dialog prefilled with the first leg; user can
+    // add the rest with "Extend onto another bed" — we also send the full
+    // legs via window state through ui-store extension would be cleaner but
+    // for now we just prefill the first leg as a starting point.
+    openNewBooking({
+      bedId: s.legs[0]?.bedId,
+      checkIn: s.legs[0]?.from,
+      checkOut: s.legs[0]?.to,
+    });
+  }
+
+  const canSubmit =
+    naturalLanguage.trim().length > 0 || (checkIn && checkOut);
 
   return (
     <div className="flex h-full">
@@ -131,7 +142,10 @@ export function AssistantView() {
                 min={1}
                 max={4}
                 value={guests}
-                onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setGuests(v === "" ? "" : parseInt(v) || "");
+                }}
                 className="w-full hairline bg-background px-2 py-1.5 text-[12px] tabular"
               />
             </Field>
@@ -149,28 +163,9 @@ export function AssistantView() {
             </Field>
           </div>
 
-          <Field label="AI provider (swappable)">
-            <div className="hairline divide-x divide-[var(--color-hairline)] flex">
-              {listProviders().map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setProviderId(p.id as ProviderId)}
-                  className={cn(
-                    "flex-1 px-2 py-1.5 text-[11px] font-medium",
-                    providerId === p.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card hover:bg-secondary",
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </Field>
-
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || !canSubmit}
             className="w-full hairline bg-foreground text-background py-2.5 text-[12px] font-semibold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? (
@@ -179,7 +174,7 @@ export function AssistantView() {
               </>
             ) : (
               <>
-                <Wand2 className="h-4 w-4" /> Find alternatives
+                <Wand2 className="h-4 w-4" /> Find booking configuration
               </>
             )}
           </button>
@@ -202,7 +197,8 @@ export function AssistantView() {
               <p className="text-[12px] text-muted-foreground leading-relaxed">
                 Describe a desired stay on the left. The assistant will inspect
                 current occupancy, find chainable bed sequences, and rank
-                alternatives by trade-off (room switches, class match, price).
+                booking configurations by trade-off (room switches, class
+                match, price).
               </p>
             </div>
           </div>
@@ -212,7 +208,7 @@ export function AssistantView() {
           <div className="p-6 space-y-6">
             <header className="hairline bg-card p-4">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Resolved stay · provider <span className="font-mono">{result.provider}</span>
+                Resolved stay
               </div>
               <div className="mt-1 text-[14px] font-semibold tabular">
                 {formatShort(result.resolvedStay.checkIn)}
@@ -232,12 +228,17 @@ export function AssistantView() {
 
             {result.suggestions.length === 0 ? (
               <div className="hairline bg-card p-8 text-center text-[12px] text-muted-foreground">
-                No valid alternative found.
+                No valid configuration found.
               </div>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {result.suggestions.map((s, idx) => (
-                  <SuggestionCard key={s.id} suggestion={s} rank={idx + 1} />
+                  <SuggestionCard
+                    key={s.id}
+                    suggestion={s}
+                    rank={idx + 1}
+                    onBook={() => handleBookSuggestion(s)}
+                  />
                 ))}
               </div>
             )}
@@ -262,9 +263,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SuggestionCard({
   suggestion,
   rank,
+  onBook,
 }: {
   suggestion: AISuggestionsResponse["suggestions"][number];
   rank: number;
+  onBook: () => void;
 }) {
   return (
     <article className="hairline bg-card flex flex-col">
@@ -278,9 +281,6 @@ function SuggestionCard({
             {suggestion.totalNights} nights · €{suggestion.totalPrice.toFixed(0)} total · {suggestion.switches} switch{suggestion.switches === 1 ? "" : "es"}
           </div>
         </div>
-        <span className="text-[10px] tabular text-muted-foreground shrink-0">
-          conf {Math.round(suggestion.confidence * 100)}%
-        </span>
       </header>
 
       <div className="px-4 py-3 hairline-b">
@@ -310,8 +310,8 @@ function SuggestionCard({
         ))}
       </ol>
 
-      <footer className="hairline-t px-4 py-2.5 bg-secondary/40">
-        <ul className="space-y-1">
+      <footer className="hairline-t px-4 py-2.5 bg-secondary/40 flex items-start gap-3">
+        <ul className="space-y-1 flex-1 min-w-0">
           {suggestion.tradeoffs.map((t, i) => (
             <li key={i} className="text-[11px] text-foreground/80 flex items-start gap-1.5">
               <span className="text-muted-foreground mt-1">›</span>
@@ -319,6 +319,13 @@ function SuggestionCard({
             </li>
           ))}
         </ul>
+        <button
+          onClick={onBook}
+          className="hairline bg-foreground text-background px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 shrink-0"
+          title="Open the new-booking dialog prefilled with this configuration"
+        >
+          <Plus className="h-3 w-3" /> Use this
+        </button>
       </footer>
     </article>
   );

@@ -32,11 +32,22 @@ export interface Bed {
   type: BedType;
 }
 
-/** A booking always occupies a specific bed for a date range [checkIn, checkOut). */
+/**
+ * A booking always occupies a specific bed for a date range [checkIn, checkOut).
+ *
+ * A guest stay that spans multiple beds (a "split" stay) is represented as
+ * multiple Booking rows that share the same `groupId`. The UI treats them as
+ * a single guest stay with multiple legs.
+ */
 export interface Booking {
   id: string;
+  /** When this booking is one leg of a multi-bed stay, all legs share this id. */
+  groupId?: string;
   guestName: string;
   guestCountry: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  guestAddress?: string;
   bedId: string;
   /** ISO date YYYY-MM-DD, inclusive. */
   checkIn: string;
