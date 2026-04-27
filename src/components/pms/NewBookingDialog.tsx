@@ -332,6 +332,26 @@ export function NewBookingDialog() {
               </button>
             </div>
 
+            {leg1IsPrivate && hasSiblings && (
+              <label className="flex items-start gap-2 hairline bg-secondary/40 p-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={wholeRoom}
+                  onChange={(e) => setWholeRoom(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span className="text-[11px] leading-snug">
+                  <strong>Book the whole room</strong> — private rooms are
+                  normally sold as a unit. With this on, all{" "}
+                  {siblingBedIds.length + 1} beds in{" "}
+                  {leg1Room?.number} {leg1Room?.name} are reserved for this
+                  guest. Uncheck only if you really intend to leave the other
+                  bed{siblingBedIds.length > 1 ? "s" : ""} bookable to a
+                  stranger (unusual).
+                </span>
+              </label>
+            )}
+
             {legs.length > 1 && (
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 Multi-bed stays are saved as one guest with multiple legs. Legs
