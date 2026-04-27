@@ -386,7 +386,7 @@ interface WholeRoomBlock {
   partyLabel: string;
 }
 
-import type { Bed } from "@/data/hostel/types";
+
 
 function computeWholeRoomBlocks(
   room: Room,
