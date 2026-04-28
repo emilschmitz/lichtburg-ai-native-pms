@@ -389,7 +389,7 @@ function SuggestionCard({
   return (
     <article
       className={cn(
-        "hairline bg-card flex flex-col overflow-hidden",
+        "hairline bg-card flex flex-col overflow-hidden h-full",
         isUpsell && "ring-1 ring-foreground/40",
       )}
     >
