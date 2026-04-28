@@ -7,6 +7,7 @@
  */
 
 import type { Bed, Booking, Room } from "@/data/hostel/types";
+import { TODAY } from "@/data/hostel";
 import type { CompactBooking, CompactRoom, OccupationContext } from "./types";
 import { findAlternatives } from "@/lib/pms/alternatives";
 
@@ -19,6 +20,7 @@ export function buildOccupationContext(args: {
   desiredCheckIn?: string;
   desiredCheckOut?: string;
   preferredClass?: Room["class"];
+  today?: string;
 }): OccupationContext {
   const { rooms, beds, bookings, windowStart, windowEnd } = args;
 
@@ -68,6 +70,7 @@ export function buildOccupationContext(args: {
       : [];
 
   return {
+    today: args.today ?? TODAY,
     windowStart,
     windowEnd,
     bookings: compactBookings,

@@ -132,10 +132,16 @@ export function AssistantView() {
         </header>
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
-          <Field label="Describe the request (natural language)">
+          <Field label="Describe the request (natural language) — ⌘/Ctrl + Enter to send">
             <textarea
               value={naturalLanguage}
               onChange={(e) => setNaturalLanguage(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  if (!loading && canSubmit) handleSubmit();
+                }
+              }}
               rows={4}
               className="w-full hairline bg-background px-3 py-2 text-[12px] font-mono leading-relaxed resize-y"
               placeholder='e.g. "Couple wants 5 nights, en-suite if possible"'
@@ -220,11 +226,7 @@ export function AssistantView() {
             <header className="hairline-b px-6 py-3 flex items-center gap-2 bg-card sticky top-0 z-10">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span className="text-[11px] uppercase tracking-wider font-semibold">
-                {streamText.length === 0
-                  ? "Connecting"
-                  : partialSuggestions.length === 0
-                    ? "Thinking"
-                    : "Generating"}
+                {partialSuggestions.length === 0 ? "Thinking…" : "Generating…"}
               </span>
               <span className="text-[11px] text-muted-foreground tabular ml-auto">
                 {(elapsedMs / 1000).toFixed(1)}s
@@ -387,7 +389,7 @@ function SuggestionCard({
   return (
     <article
       className={cn(
-        "hairline bg-card flex flex-col overflow-hidden",
+        "hairline bg-card flex flex-col overflow-hidden h-full",
         isUpsell && "ring-1 ring-foreground/40",
       )}
     >
@@ -440,7 +442,7 @@ function SuggestionCard({
         ))}
       </ol>
 
-      <footer className="hairline-t px-4 py-2.5 bg-secondary/40 flex items-start gap-3">
+      <footer className="hairline-t px-4 py-2.5 bg-secondary/40 flex items-start gap-3 mt-auto">
         <ul className="space-y-1 flex-1 min-w-0">
           {suggestion.tradeoffs.map((t, i) => (
             <li key={i} className="text-[11px] text-foreground/80 flex items-start gap-1.5">

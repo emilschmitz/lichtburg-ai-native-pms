@@ -16,6 +16,8 @@ import type { Booking, RoomClass } from "@/data/hostel/types";
 import type { Alternative } from "@/lib/pms/alternatives";
 
 export interface OccupationContext {
+  /** ISO date for "today" — the operator's current date. */
+  today: string;
   /** ISO date for the start of the window the operator is asking about. */
   windowStart: string;
   /** Exclusive end date. */
