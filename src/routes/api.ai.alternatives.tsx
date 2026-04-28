@@ -212,6 +212,7 @@ export const Route = createFileRoute("/api/ai/alternatives")({
             const userMessage = JSON.stringify({
               desired: data.desired,
               context: {
+                today: data.context.today,
                 windowStart: data.context.windowStart,
                 windowEnd: data.context.windowEnd,
                 rooms: data.context.rooms,
