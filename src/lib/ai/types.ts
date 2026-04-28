@@ -89,6 +89,8 @@ export interface AISuggestion {
   tradeoffs: string[];
   /** 0..1 — model's own confidence that this option fits the request. */
   confidence: number;
+  /** True if this is a nicer/pricier upsell alternative worth highlighting. */
+  upsell?: boolean;
 }
 
 export interface AISuggestionsResponse {
