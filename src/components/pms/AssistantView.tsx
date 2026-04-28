@@ -383,14 +383,27 @@ function SuggestionCard({
   rank: number;
   onBook: () => void;
 }) {
+  const isUpsell = !!suggestion.upsell;
   return (
-    <article className="hairline bg-card flex flex-col">
+    <article
+      className={cn(
+        "hairline bg-card flex flex-col overflow-hidden",
+        isUpsell && "ring-1 ring-foreground/40",
+      )}
+    >
       <header className="hairline-b px-4 py-3 flex items-start gap-3">
         <span className="hairline bg-foreground text-background h-6 w-6 flex items-center justify-center text-[11px] font-bold tabular shrink-0">
           {rank}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-semibold leading-snug">{suggestion.title}</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="text-[13px] font-semibold leading-snug">{suggestion.title}</div>
+            {isUpsell && (
+              <span className="hairline bg-foreground text-background text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 flex items-center gap-1">
+                <TrendingUp className="h-2.5 w-2.5" /> Upsell
+              </span>
+            )}
+          </div>
           <div className="text-[11px] text-muted-foreground mt-0.5 tabular">
             {suggestion.totalNights} nights · €{suggestion.totalPrice.toFixed(0)} total · {suggestion.switches} switch{suggestion.switches === 1 ? "" : "es"}
           </div>
@@ -403,23 +416,26 @@ function SuggestionCard({
 
       <ol className="divide-y divide-[var(--color-hairline)]">
         {suggestion.legs.map((leg, i) => (
-          <li key={i} className="px-4 py-2.5 flex items-center gap-3 text-[12px]">
-            <span
-              className={cn(
-                "h-2.5 w-2.5 hairline shrink-0",
-                CLASS_TOKEN[leg.roomClass],
-              )}
-            />
-            <span className="font-mono font-semibold tabular w-12">{leg.roomNumber}</span>
-            <span className="flex-1 min-w-0 truncate">
-              <span className="font-medium">{leg.roomName}</span>
-              <span className="text-muted-foreground"> · {leg.bedLabel}</span>
-            </span>
-            <span className="tabular text-muted-foreground shrink-0">
-              {leg.from} <ChevronRight className="inline h-3 w-3" /> {leg.to}
-            </span>
-            <span className="tabular w-12 text-right shrink-0">{leg.nights}n</span>
-            <span className="tabular w-14 text-right shrink-0">€{leg.pricePerNight}</span>
+          <li key={i} className="px-4 py-2.5 text-[12px] space-y-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <span
+                className={cn(
+                  "h-2.5 w-2.5 hairline shrink-0",
+                  CLASS_TOKEN[leg.roomClass],
+                )}
+              />
+              <span className="font-mono font-semibold tabular shrink-0">{leg.roomNumber}</span>
+              <span className="flex-1 min-w-0 truncate">
+                <span className="font-medium">{leg.roomName}</span>
+                <span className="text-muted-foreground"> · {leg.bedLabel}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 pl-[18px] text-[11px] tabular text-muted-foreground">
+              <span className="truncate">
+                {leg.from} <ChevronRight className="inline h-3 w-3" /> {leg.to}
+              </span>
+              <span className="ml-auto shrink-0">{leg.nights}n · €{leg.pricePerNight}</span>
+            </div>
           </li>
         ))}
       </ol>
@@ -429,7 +445,7 @@ function SuggestionCard({
           {suggestion.tradeoffs.map((t, i) => (
             <li key={i} className="text-[11px] text-foreground/80 flex items-start gap-1.5">
               <span className="text-muted-foreground mt-1">›</span>
-              <span>{t}</span>
+              <span className="break-words min-w-0">{t}</span>
             </li>
           ))}
         </ul>
