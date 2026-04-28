@@ -19,7 +19,7 @@ import {
 } from "@/lib/ai";
 import { suggestAlternativesStreaming } from "@/lib/ai/openai-provider";
 import { addDaysISO, formatShort } from "@/lib/pms/dates";
-import { ArrowRight, Loader2, Sparkles, Wand2, ChevronRight, Plus } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Wand2, ChevronRight, Plus, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePmsUi } from "@/lib/pms/ui-store";
 
