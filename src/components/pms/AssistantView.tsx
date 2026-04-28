@@ -43,13 +43,30 @@ export function AssistantView() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AISuggestionsResponse | null>(null);
   const [streamText, setStreamText] = useState("");
+  const [partialSuggestions, setPartialSuggestions] = useState<AISuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const startedAtRef = useRef<number | null>(null);
+
+  // Tick the elapsed-time counter while loading
+  useEffect(() => {
+    if (!loading) return;
+    startedAtRef.current = performance.now();
+    setElapsedMs(0);
+    const id = setInterval(() => {
+      if (startedAtRef.current != null) {
+        setElapsedMs(performance.now() - startedAtRef.current);
+      }
+    }, 100);
+    return () => clearInterval(id);
+  }, [loading]);
 
   async function handleSubmit() {
     setLoading(true);
     setError(null);
     setResult(null);
     setStreamText("");
+    setPartialSuggestions([]);
     try {
       const winStart = checkIn || addDaysISO(new Date().toISOString().slice(0, 10), 0);
       const winEnd = checkOut || addDaysISO(winStart, 14);
@@ -63,6 +80,7 @@ export function AssistantView() {
         desiredCheckOut: checkOut || undefined,
         preferredClass: preferredClass || undefined,
       });
+      let acc = "";
       const out = await suggestAlternativesStreaming({
         desired: {
           naturalLanguage: naturalLanguage || undefined,
@@ -72,7 +90,12 @@ export function AssistantView() {
           preferredClass: preferredClass || undefined,
         },
         context,
-        onDelta: (t) => setStreamText((prev) => prev + t),
+        onDelta: (t) => {
+          acc += t;
+          setStreamText(acc);
+          const parsed = extractCompleteSuggestions(acc);
+          if (parsed.length > 0) setPartialSuggestions(parsed);
+        },
       });
       setResult(out);
     } catch (e) {
