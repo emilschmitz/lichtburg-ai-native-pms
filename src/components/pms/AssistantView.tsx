@@ -216,22 +216,42 @@ export function AssistantView() {
       {/* Right: results */}
       <div className="flex-1 min-w-0 overflow-auto bg-background">
         {loading && (
-          <div className="h-full flex flex-col">
-            <header className="hairline-b px-6 py-3 flex items-center gap-2 bg-card">
+          <div className="flex flex-col">
+            <header className="hairline-b px-6 py-3 flex items-center gap-2 bg-card sticky top-0 z-10">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span className="text-[11px] uppercase tracking-wider font-semibold">
-                Thinking
+                {streamText.length === 0
+                  ? "Connecting"
+                  : partialSuggestions.length === 0
+                    ? "Thinking"
+                    : "Generating"}
               </span>
               <span className="text-[11px] text-muted-foreground tabular ml-auto">
-                {streamText.length} chars
+                {(elapsedMs / 1000).toFixed(1)}s
+                {partialSuggestions.length > 0 && (
+                  <> · {partialSuggestions.length} option{partialSuggestions.length === 1 ? "" : "s"}</>
+                )}
               </span>
             </header>
-            <div className="flex-1 overflow-auto p-6">
-              <pre className="text-[11px] leading-relaxed font-mono text-foreground/70 whitespace-pre-wrap break-all">
-                {streamText || "Connecting to model…"}
-                <span className="inline-block w-1.5 h-3 bg-foreground/60 ml-0.5 align-middle animate-pulse" />
-              </pre>
-            </div>
+
+            {partialSuggestions.length > 0 ? (
+              <div className="p-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {partialSuggestions.map((s, idx) => (
+                    <SuggestionCard
+                      key={s.id || idx}
+                      suggestion={s}
+                      rank={idx + 1}
+                      onBook={() => handleBookSuggestion(s)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 text-[12px] text-muted-foreground">
+                Inspecting occupancy and ranking options…
+              </div>
+            )}
           </div>
         )}
 
@@ -249,7 +269,7 @@ export function AssistantView() {
           </div>
         )}
 
-        {result && (
+        {result && !loading && (
           <div className="p-6 space-y-6">
             <header className="hairline bg-card p-4">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -292,6 +312,55 @@ export function AssistantView() {
       </div>
     </div>
   );
+}
+
+/**
+ * Extract complete `suggestion` objects from a partially-streamed JSON string.
+ * Walks the character stream after `"suggestions": [` and returns every
+ * fully-balanced `{ ... }` object found so far. Strings (and escapes within
+ * them) are skipped so braces inside strings don't confuse the counter.
+ */
+function extractCompleteSuggestions(text: string): AISuggestion[] {
+  const keyIdx = text.indexOf('"suggestions"');
+  if (keyIdx === -1) return [];
+  const bracketIdx = text.indexOf("[", keyIdx);
+  if (bracketIdx === -1) return [];
+
+  const out: AISuggestion[] = [];
+  let i = bracketIdx + 1;
+  while (i < text.length) {
+    while (i < text.length && (text[i] === " " || text[i] === "\n" || text[i] === "\r" || text[i] === "\t" || text[i] === ",")) i++;
+    if (i >= text.length || text[i] === "]") break;
+    if (text[i] !== "{") { i++; continue; }
+    const start = i;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let end = -1;
+    for (; i < text.length; i++) {
+      const c = text[i];
+      if (inStr) {
+        if (esc) { esc = false; continue; }
+        if (c === "\\") { esc = true; continue; }
+        if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') { inStr = true; continue; }
+      if (c === "{") depth++;
+      else if (c === "}") {
+        depth--;
+        if (depth === 0) { end = i + 1; i++; break; }
+      }
+    }
+    if (end === -1) break;
+    try {
+      const obj = JSON.parse(text.slice(start, end)) as AISuggestion;
+      if (obj && Array.isArray(obj.legs)) out.push(obj);
+    } catch {
+      // skip malformed
+    }
+  }
+  return out;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
