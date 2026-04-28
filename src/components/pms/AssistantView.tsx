@@ -4,7 +4,7 @@
  * (sequences of beds that together cover the stay).
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ROOMS,
   BEDS,
@@ -14,6 +14,7 @@ import { useBookings } from "@/lib/pms/bookings-store";
 import type { RoomClass } from "@/data/hostel/types";
 import {
   buildOccupationContext,
+  type AISuggestion,
   type AISuggestionsResponse,
 } from "@/lib/ai";
 import { suggestAlternativesStreaming } from "@/lib/ai/openai-provider";
