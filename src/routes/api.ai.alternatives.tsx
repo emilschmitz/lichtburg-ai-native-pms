@@ -138,6 +138,7 @@ const JSON_SCHEMA = {
             switches: { type: "integer", minimum: 0 },
             tradeoffs: { type: "array", items: { type: "string" } },
             confidence: { type: "number", minimum: 0, maximum: 1 },
+            upsell: { type: "boolean" },
           },
           required: [
             "id",
@@ -149,6 +150,7 @@ const JSON_SCHEMA = {
             "switches",
             "tradeoffs",
             "confidence",
+            "upsell",
           ],
         },
       },
