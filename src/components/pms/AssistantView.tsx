@@ -220,11 +220,7 @@ export function AssistantView() {
             <header className="hairline-b px-6 py-3 flex items-center gap-2 bg-card sticky top-0 z-10">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span className="text-[11px] uppercase tracking-wider font-semibold">
-                {streamText.length === 0
-                  ? "Connecting"
-                  : partialSuggestions.length === 0
-                    ? "Thinking"
-                    : "Generating"}
+                {partialSuggestions.length === 0 ? "Thinking…" : "Generating…"}
               </span>
               <span className="text-[11px] text-muted-foreground tabular ml-auto">
                 {(elapsedMs / 1000).toFixed(1)}s
