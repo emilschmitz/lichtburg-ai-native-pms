@@ -442,7 +442,7 @@ function SuggestionCard({
         ))}
       </ol>
 
-      <footer className="hairline-t px-4 py-2.5 bg-secondary/40 flex items-start gap-3">
+      <footer className="hairline-t px-4 py-2.5 bg-secondary/40 flex items-start gap-3 mt-auto">
         <ul className="space-y-1 flex-1 min-w-0">
           {suggestion.tradeoffs.map((t, i) => (
             <li key={i} className="text-[11px] text-foreground/80 flex items-start gap-1.5">
