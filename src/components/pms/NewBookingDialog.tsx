@@ -203,12 +203,6 @@ export function NewBookingDialog() {
   if (!newBookingOpen) return null;
 
   function handleClose() {
-    if (isDirty) {
-      const ok = window.confirm(
-        "Discard this new booking? All entered information will be lost.",
-      );
-      if (!ok) return;
-    }
     closeNewBooking();
   }
 
