@@ -48,6 +48,10 @@ CRITICAL RULES for any "suggestion" you return:
      totalPrice = sum(leg.nights * leg.pricePerNight);
      switches = legs.length - 1.
   6. tradeoffs are concrete and operator-facing.
+  7. Set "upsell": true on AT MOST ONE suggestion that is a nicer/pricier
+     alternative worth proposing as an upgrade (e.g. en-suite when a dorm
+     was requested, or whole-room when a single bed would do). Leave
+     "upsell": false on all others. Do not mark the cheapest option as upsell.
 
 Return 2–4 suggestions, best-first. Be quick: minimal reasoning, short
 rationales. Don't over-deliberate.`;
@@ -134,6 +138,7 @@ const JSON_SCHEMA = {
             switches: { type: "integer", minimum: 0 },
             tradeoffs: { type: "array", items: { type: "string" } },
             confidence: { type: "number", minimum: 0, maximum: 1 },
+            upsell: { type: "boolean" },
           },
           required: [
             "id",
@@ -145,6 +150,7 @@ const JSON_SCHEMA = {
             "switches",
             "tradeoffs",
             "confidence",
+            "upsell",
           ],
         },
       },
