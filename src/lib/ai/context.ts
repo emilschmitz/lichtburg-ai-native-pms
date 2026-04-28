@@ -70,6 +70,7 @@ export function buildOccupationContext(args: {
       : [];
 
   return {
+    today: args.today ?? TODAY,
     windowStart,
     windowEnd,
     bookings: compactBookings,
