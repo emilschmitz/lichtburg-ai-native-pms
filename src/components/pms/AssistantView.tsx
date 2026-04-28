@@ -132,10 +132,16 @@ export function AssistantView() {
         </header>
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
-          <Field label="Describe the request (natural language)">
+          <Field label="Describe the request (natural language) — ⌘/Ctrl + Enter to send">
             <textarea
               value={naturalLanguage}
               onChange={(e) => setNaturalLanguage(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  if (!loading && canSubmit) handleSubmit();
+                }
+              }}
               rows={4}
               className="w-full hairline bg-background px-3 py-2 text-[12px] font-mono leading-relaxed resize-y"
               placeholder='e.g. "Couple wants 5 nights, en-suite if possible"'
