@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { ComponentType, SVGProps } from "react";
-import { HOSTEL_INFO } from "@/data/hostel";
+import { HOSTEL_INFO, TODAY } from "@/data/hostel";
 import { CalendarRange, LayoutGrid, Sparkles, ListChecks, Plus } from "lucide-react";
 import { BookingsProvider } from "@/lib/pms/bookings-store";
 import { PmsUiProvider, usePmsUi } from "@/lib/pms/ui-store";
@@ -102,7 +102,7 @@ function TopBar({ onNewBooking }: { onNewBooking: () => void }) {
         <span>
           Front desk —{" "}
           <span className="text-foreground">
-            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+            {new Date(TODAY + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
           </span>
         </span>
       </div>

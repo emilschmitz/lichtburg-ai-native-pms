@@ -1,0 +1,58 @@
+# Lichtburg AI Native PMS
+
+This is a demo of an AI-native Property Management System (PMS) built with a modern React stack.
+
+Notably, you can use an agent to find different booking options, which is especially useful when it is not possible to fully comply with a clients request or you need to make a multi-leg booking.
+
+## Tech Stack
+
+- **Framework**: [TanStack Start](https://tanstack.com/start/latest) with [TanStack Router](https://tanstack.com/router/latest)
+- **UI & Styling**: [Tailwind CSS v4](https://tailwindcss.com/) & [Radix UI](https://www.radix-ui.com/) components
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Forms & Validation**: [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/)
+- **Deployment**: Configured for Cloudflare (via `@cloudflare/vite-plugin` and `wrangler.jsonc`)
+
+## Getting Started
+
+### Prerequisites
+
+Ensure you have [Bun](https://bun.sh/) (or Node.js) installed on your machine.
+
+### Installation
+
+1. Clone the repository and navigate to the project folder.
+2. Install dependencies:
+
+```bash
+bun install
+```
+
+### Running Locally
+
+To start the development server, run:
+
+```bash
+bun run dev
+```
+
+This will start the Vite dev server. Open the local URL provided in your terminal (usually `http://localhost:5173`) to view the application.
+
+## Available Scripts
+
+- `bun run dev`: Starts the development server.
+- `bun run build`: Builds the app for production.
+- `bun run build:dev`: Builds the app in development mode.
+- `bun run preview`: Locally previews the production build.
+- `bun run lint`: Runs ESLint to find code issues.
+- `bun run format`: Formats code using Prettier.
+
+## Environment Variables
+
+This project requires an OpenAI API key to run its AI-native features.
+
+1. `cp .env.sample .env` in the root directory.
+2. Add your OpenAI API key:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+```

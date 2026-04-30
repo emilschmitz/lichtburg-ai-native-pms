@@ -5,7 +5,7 @@ import { BEDS } from "./rooms";
  * Deterministic mock. We pin "today" so the calendar always shows the
  * intended scenario regardless of when the app runs.
  */
-export const TODAY = "2026-04-29";
+export const TODAY = "2026-04-30";
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");
