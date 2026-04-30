@@ -4,6 +4,8 @@ This is a demo of an AI-native Property Management System (PMS) built with a mod
 
 Notably, you can use an agent to find different booking options, which is especially useful when it is not possible to fully comply with a clients request or you need to make a multi-leg booking.
 
+[booking_agent_demo.webm](https://github.com/user-attachments/assets/99d3e799-d81e-4e21-b7ee-899eef3615b5)
+
 ## Tech Stack
 
 - **Framework**: [TanStack Start](https://tanstack.com/start/latest) with [TanStack Router](https://tanstack.com/router/latest)
