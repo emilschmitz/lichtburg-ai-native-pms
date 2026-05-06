@@ -18,7 +18,7 @@ Notably, you can use an agent to find different booking options, which is especi
 
 ### Prerequisites
 
-Ensure you have [Bun](https://bun.sh/) (or Node.js) installed on your machine.
+Ensure you have [Bun](https://bun.sh/) installed on your machine.
 
 ### Installation
 
