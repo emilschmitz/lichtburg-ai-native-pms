@@ -2,10 +2,21 @@ import type { Booking } from "./types";
 import { BEDS } from "./rooms";
 
 /**
- * Deterministic mock. We pin "today" so the calendar always shows the
- * intended scenario regardless of when the app runs.
+ * Dynamic mock. Uses current Berlin date so the PMS is always up to date.
  */
-export const TODAY = "2026-04-30";
+const now = new Date();
+const formatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Berlin",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const parts = formatter.formatToParts(now);
+const y = parts.find(p => p.type === 'year')?.value;
+const m = parts.find(p => p.type === 'month')?.value;
+const d = parts.find(p => p.type === 'day')?.value;
+
+export const TODAY = `${y}-${m}-${d}`;
 
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");

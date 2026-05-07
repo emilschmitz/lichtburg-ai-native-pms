@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import type { ComponentType, SVGProps } from "react";
+import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { HOSTEL_INFO, TODAY } from "@/data/hostel";
 import { CalendarRange, LayoutGrid, Sparkles, ListChecks, Plus } from "lucide-react";
 import { BookingsProvider } from "@/lib/pms/bookings-store";
@@ -78,6 +78,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             <div className="font-medium text-foreground">{HOSTEL_INFO.name}</div>
             <div>{HOSTEL_INFO.address}</div>
             <div>{HOSTEL_INFO.totalBeds} beds · 6 rooms</div>
+            <BerlinClock />
           </div>
         </aside>
         <main className="flex-1 min-w-0 min-h-0 overflow-auto">{children}</main>
@@ -119,5 +120,38 @@ function TopBar({ onNewBooking }: { onNewBooking: () => void }) {
         </div>
       </div>
     </header>
+  );
+}
+
+function BerlinClock() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Berlin",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  
+  const parts = formatter.formatToParts(time);
+  const day = parts.find(p => p.type === 'day')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const year = parts.find(p => p.type === 'year')?.value;
+  const hour = parts.find(p => p.type === 'hour')?.value;
+  const minute = parts.find(p => p.type === 'minute')?.value;
+  
+  return (
+    <div className="mt-3 pt-3 hairline-t flex items-center justify-between">
+      <span>{`${day} ${month} ${year}`}</span>
+      <span>{`${hour}:${minute} CET`}</span>
+    </div>
   );
 }
