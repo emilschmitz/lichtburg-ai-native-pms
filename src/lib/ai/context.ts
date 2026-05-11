@@ -38,9 +38,7 @@ export function buildOccupationContext(args: {
     };
   });
 
-  const overlapping = bookings.filter(
-    (b) => b.checkIn < windowEnd && b.checkOut > windowStart,
-  );
+  const overlapping = bookings.filter((b) => b.checkIn < windowEnd && b.checkOut > windowStart);
   const compactBookings: CompactBooking[] = overlapping.map((b) => ({
     id: b.id,
     bedId: b.bedId,

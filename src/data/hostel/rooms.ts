@@ -86,6 +86,38 @@ export const ROOMS: Room[] = [
     pricePerNight: 78,
     amenities: ["Skylight", "Quiet floor", "Two single beds"],
   },
+
+];
+
+/** Demo rooms — only injected during the Quick Tour. */
+export const DEMO_ROOMS: Room[] = [
+  {
+    id: "r-demo-1",
+    number: "901",
+    name: "Demo Room 1",
+    class: "single_private",
+    capacity: 1,
+    floor: 0,
+    layout: { x: 0, y: 3, w: 3, h: 2 },
+    pricePerNight: 50,
+    amenities: ["Tour Room"],
+  },
+  {
+    id: "r-demo-2",
+    number: "902",
+    name: "Demo Room 2",
+    class: "single_private",
+    capacity: 1,
+    floor: 0,
+    layout: { x: 3, y: 3, w: 3, h: 2 },
+    pricePerNight: 50,
+    amenities: ["Tour Room"],
+  },
+];
+
+export const DEMO_BEDS: Bed[] = [
+  { id: "b-demo-1-a", roomId: "r-demo-1", label: "Bed A", type: "single" },
+  { id: "b-demo-2-a", roomId: "r-demo-2", label: "Bed A", type: "single" },
 ];
 
 /**

@@ -54,12 +54,7 @@ export interface Alternative {
 }
 
 /** Earliest date this bed is occupied at-or-after `from`, or `Infinity` (= toIso) if free until then. */
-function nextBlockedAt(
-  bookings: Booking[],
-  bedId: string,
-  from: string,
-  to: string,
-): string {
+function nextBlockedAt(bookings: Booking[], bedId: string, from: string, to: string): string {
   const inRange = bookingsOnBedInRange(bookings, bedId, from, to);
   for (const b of inRange) {
     // booking that starts at or after `from`
@@ -71,16 +66,9 @@ function nextBlockedAt(
 }
 
 /** Beds free starting at exactly `from` (i.e. no booking covers `from`). */
-function bedsFreeAt(
-  beds: Bed[],
-  rooms: Room[],
-  bookings: Booking[],
-  from: string,
-): Bed[] {
+function bedsFreeAt(beds: Bed[], rooms: Room[], bookings: Booking[], from: string): Bed[] {
   const bedFree = (bedId: string) =>
-    !bookings.some(
-      (b) => b.bedId === bedId && b.checkIn <= from && b.checkOut > from,
-    );
+    !bookings.some((b) => b.bedId === bedId && b.checkIn <= from && b.checkOut > from);
   // Whole-room block for private rooms: if any sibling bed is occupied
   // at `from`, the whole room is unavailable to a new party.
   const blockedRoomIds = new Set<string>();

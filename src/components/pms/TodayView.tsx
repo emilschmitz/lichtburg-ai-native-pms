@@ -4,13 +4,8 @@
  */
 
 import { useMemo, useState } from "react";
-import { BEDS, ROOMS, TODAY, ROOM_CLASS_LABEL } from "@/data/hostel";
-import {
-  arrivalsOn,
-  departuresOn,
-  inHouseOn,
-  roomForBed,
-} from "@/lib/pms/availability";
+import { BEDS, ROOMS, DEMO_ROOMS, DEMO_BEDS, TODAY, ROOM_CLASS_LABEL } from "@/data/hostel";
+import { arrivalsOn, departuresOn, inHouseOn, roomForBed } from "@/lib/pms/availability";
 import { addDaysISO, formatShort } from "@/lib/pms/dates";
 import { ChevronLeft, ChevronRight, LogIn, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +15,12 @@ import { usePmsUi } from "@/lib/pms/ui-store";
 
 export function TodayView() {
   const { bookings } = useBookings();
-  const { openBooking } = usePmsUi();
+  const { openBooking, tourActive } = usePmsUi();
+
+  // Demo rooms only exist during the tour
+  const allRooms = useMemo(() => (tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [tourActive]);
+  const allBeds = useMemo(() => (tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [tourActive]);
+
   const [date, setDate] = useState<string>(TODAY);
   const arrivals = useMemo(() => arrivalsOn(bookings, date), [date, bookings]);
   const departures = useMemo(() => departuresOn(bookings, date), [date, bookings]);
@@ -52,7 +52,11 @@ export function TodayView() {
         <div className="text-[13px] font-medium tabular">{formatShort(date)}</div>
         <div className="ml-auto flex items-center gap-4 text-[11px] text-muted-foreground tabular">
           <Stat icon={<LogIn className="h-3.5 w-3.5" />} value={arrivals.length} label="Arrivals" />
-          <Stat icon={<LogOut className="h-3.5 w-3.5" />} value={departures.length} label="Departures" />
+          <Stat
+            icon={<LogOut className="h-3.5 w-3.5" />}
+            value={departures.length}
+            label="Departures"
+          />
           <Stat icon={<Users className="h-3.5 w-3.5" />} value={inHouse.length} label="In-house" />
         </div>
       </div>
@@ -132,8 +136,12 @@ function BookingRow({
   variant: "arrival" | "departure" | "in-house";
   onOpen: (id: string) => void;
 }) {
-  const room = roomForBed(ROOMS, BEDS, booking.bedId);
-  const bed = BEDS.find((b) => b.id === booking.bedId);
+  const { tourActive } = usePmsUi();
+  const allRooms = useMemo(() => (tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [tourActive]);
+  const allBeds = useMemo(() => (tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [tourActive]);
+
+  const room = roomForBed(allRooms, allBeds, booking.bedId);
+  const bed = allBeds.find((b) => b.id === booking.bedId);
   return (
     <button
       onClick={() => onOpen(booking.id)}
@@ -150,11 +158,14 @@ function BookingRow({
       <div className="flex-1 min-w-0">
         <div className="text-[12px] font-medium truncate">{booking.guestName}</div>
         <div className="text-[10px] text-muted-foreground tabular truncate">
-          {room?.number} · {room?.name} · {bed?.label} · {ROOM_CLASS_LABEL[room?.class ?? "shared_mixed"]}
+          {room?.number} · {room?.name} · {bed?.label} ·{" "}
+          {ROOM_CLASS_LABEL[room?.class ?? "shared_mixed"]}
         </div>
       </div>
       <div className="text-right text-[10px] text-muted-foreground tabular shrink-0">
-        <div>{booking.checkIn} → {booking.checkOut}</div>
+        <div>
+          {booking.checkIn} → {booking.checkOut}
+        </div>
         <div className="font-mono uppercase">{booking.status.replace("_", " ")}</div>
       </div>
     </button>

@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { ROOMS, BEDS, ROOM_CLASS_LABEL } from "@/data/hostel";
+import { ROOMS, BEDS, DEMO_ROOMS, DEMO_BEDS, ROOM_CLASS_LABEL } from "@/data/hostel";
 import type { Booking } from "@/data/hostel/types";
 import { useBookings } from "@/lib/pms/bookings-store";
 import { usePmsUi } from "@/lib/pms/ui-store";
@@ -32,17 +32,16 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STATUSES: Booking["status"][] = [
-  "tentative",
-  "confirmed",
-  "checked_in",
-  "checked_out",
-];
+const STATUSES: Booking["status"][] = ["tentative", "confirmed", "checked_in", "checked_out"];
 
 export function BookingDrawer() {
-  const { selectedBookingId, closeBooking } = usePmsUi();
+  const { selectedBookingId, closeBooking, updateTourState, tourState, tourActive } = usePmsUi();
   const { get, legsOf, updateGuest, moveLeg, remove, checkConflicts } = useBookings();
   const booking = selectedBookingId ? get(selectedBookingId) : null;
+
+  // Demo rooms only exist during the tour
+  const allRooms = useMemo(() => (tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [tourActive]);
+  const allBeds = useMemo(() => (tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [tourActive]);
 
   // ---- Local edit state ----
   const [draft, setDraft] = useState<{
@@ -89,8 +88,8 @@ export function BookingDrawer() {
 
   if (!booking || !draft) return null;
 
-  const room = roomForBed(ROOMS, BEDS, draft.bedId);
-  const bed = BEDS.find((b) => b.id === draft.bedId);
+  const room = roomForBed(allRooms, allBeds, draft.bedId);
+  const bed = allBeds.find((b) => b.id === draft.bedId);
 
   const dirtyGuest =
     draft.guestName !== booking.guestName ||
@@ -176,7 +175,8 @@ export function BookingDrawer() {
               Booking · {booking.id}
               {isSplit && (
                 <span className="ml-2 hairline px-1 py-0.5 bg-accent text-accent-foreground">
-                  split stay · leg {allLegs.findIndex((l) => l.id === booking.id) + 1}/{allLegs.length}
+                  split stay · leg {allLegs.findIndex((l) => l.id === booking.id) + 1}/
+                  {allLegs.length}
                 </span>
               )}
             </div>
@@ -224,15 +224,16 @@ export function BookingDrawer() {
                   All legs of this stay
                 </div>
                 {allLegs.map((leg, i) => {
-                  const lr = roomForBed(ROOMS, BEDS, leg.bedId);
-                  const lb = BEDS.find((b) => b.id === leg.bedId);
-                  const isThis = leg.id === booking.id;
+                  const lr = roomForBed(allRooms, allBeds, leg.bedId);
+                  const lb = allBeds.find((b) => b.id === leg.bedId);
+                  const isActive = leg.id === booking.id;
+
                   return (
                     <div
                       key={leg.id}
                       className={cn(
                         "flex items-center gap-2 text-[11px] tabular px-1.5 py-1 hairline",
-                        isThis ? "bg-primary text-primary-foreground" : "bg-card",
+                        isActive ? "bg-primary text-primary-foreground" : "bg-card",
                       )}
                     >
                       <span className="font-mono font-semibold w-5">{i + 1}.</span>
@@ -275,15 +276,18 @@ export function BookingDrawer() {
                 onChange={(e) => setDraft({ ...draft, bedId: e.target.value })}
                 className="w-full hairline bg-background px-2 py-1.5 text-[12px]"
               >
-                {ROOMS.map((r) => (
+                {allRooms.map((r) => (
                   <optgroup key={r.id} label={`${r.number} · ${r.name}`}>
-                    {BEDS.filter((b) => b.roomId === r.id).map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {r.number} · {b.label}
-                      </option>
-                    ))}
+                    {allBeds
+                      .filter((b) => b.roomId === r.id)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {r.number} · {b.label}
+                        </option>
+                      ))}
                   </optgroup>
                 ))}
+
               </select>
             </Field>
 
@@ -353,7 +357,7 @@ export function BookingDrawer() {
               />
             </Field>
             <Field label="Status">
-              <div className="hairline divide-x divide-[var(--color-hairline)] flex">
+              <div className="hairline divide-x divide-[var(--color-hairline)] flex tour-status-section">
                 {STATUSES.map((s) => (
                   <button
                     key={s}
@@ -419,9 +423,7 @@ export function BookingDrawer() {
           )}
           <div className="ml-auto flex items-center gap-2">
             {dirty && (
-              <span className="text-[11px] text-muted-foreground italic">
-                Unsaved changes
-              </span>
+              <span className="text-[11px] text-muted-foreground italic">Unsaved changes</span>
             )}
             <button
               disabled={!dirty || (dirtyLeg && (!conflictCheck.ok || !datesValid))}

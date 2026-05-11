@@ -30,9 +30,7 @@ export function bookingForBedOnNight(
   bedId: string,
   nightIso: string,
 ): Booking | null {
-  return (
-    bookings.find((b) => b.bedId === bedId && bookingCoversNight(b, nightIso)) ?? null
-  );
+  return bookings.find((b) => b.bedId === bedId && bookingCoversNight(b, nightIso)) ?? null;
 }
 
 /**
@@ -51,9 +49,7 @@ export function bedsFreeForRange(
   rooms?: Room[],
 ): Bed[] {
   const bedFree = (bedId: string) =>
-    !bookings.some(
-      (b) => b.bedId === bedId && b.checkIn < end && b.checkOut > start,
-    );
+    !bookings.some((b) => b.bedId === bedId && b.checkIn < end && b.checkOut > start);
   if (!rooms) return beds.filter((bed) => bedFree(bed.id));
 
   const blockedRoomIds = new Set<string>();
@@ -66,11 +62,7 @@ export function bedsFreeForRange(
 }
 
 /** % occupancy across all beds for a single night. */
-export function nightOccupancy(
-  beds: Bed[],
-  bookings: Booking[],
-  nightIso: string,
-): number {
+export function nightOccupancy(beds: Bed[], bookings: Booking[], nightIso: string): number {
   const occupied = beds.filter((b) =>
     bookings.some((bk) => bk.bedId === b.id && bookingCoversNight(bk, nightIso)),
   ).length;
@@ -123,11 +115,7 @@ export function roomFor(rooms: Room[], roomId: string): Room | undefined {
   return rooms.find((r) => r.id === roomId);
 }
 
-export function roomForBed(
-  rooms: Room[],
-  beds: Bed[],
-  bedId: string,
-): Room | undefined {
+export function roomForBed(rooms: Room[], beds: Bed[], bedId: string): Room | undefined {
   const bed = beds.find((b) => b.id === bedId);
   if (!bed) return undefined;
   return rooms.find((r) => r.id === bed.roomId);

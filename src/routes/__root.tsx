@@ -1,4 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { PmsUiProvider } from "@/lib/pms/ui-store";
+import { BookingsProvider } from "@/lib/pms/bookings-store";
+import { AcademyProvider } from "@/lib/pms/academy-store";
 
 import appCss from "../styles.css?url";
 
@@ -59,7 +62,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <PmsUiProvider>
+          <BookingsProvider>
+            <AcademyProvider>{children}</AcademyProvider>
+          </BookingsProvider>
+        </PmsUiProvider>
         <Scripts />
       </body>
     </html>

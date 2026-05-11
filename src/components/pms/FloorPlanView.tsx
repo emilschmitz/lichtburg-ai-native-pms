@@ -4,13 +4,9 @@
  */
 
 import { useMemo, useState } from "react";
-import { ROOMS, BEDS, TODAY } from "@/data/hostel";
+import { ROOMS, BEDS, DEMO_ROOMS, DEMO_BEDS, TODAY } from "@/data/hostel";
 import { addDaysISO, formatShort, rangeDates } from "@/lib/pms/dates";
-import {
-  bookingForBedOnNight,
-  inHouseOn,
-  nightOccupancy,
-} from "@/lib/pms/availability";
+import { bookingForBedOnNight, inHouseOn, nightOccupancy } from "@/lib/pms/availability";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookings } from "@/lib/pms/bookings-store";
@@ -27,10 +23,15 @@ const CLASS_TOKEN: Record<string, string> = {
 
 export function FloorPlanView() {
   const { bookings } = useBookings();
-  const { openBooking, openNewBooking } = usePmsUi();
+  const { openBooking, openNewBooking, tourActive } = usePmsUi();
+
+  // Demo rooms only exist during the tour
+  const allRooms = useMemo(() => (tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [tourActive]);
+  const allBeds = useMemo(() => (tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [tourActive]);
+
   const [date, setDate] = useState<string>(TODAY);
   const dates = useMemo(() => rangeDates(addDaysISO(TODAY, -2), addDaysISO(TODAY, 14)), []);
-  const occ = useMemo(() => nightOccupancy(BEDS, bookings, date), [date, bookings]);
+  const occ = useMemo(() => nightOccupancy(allBeds, bookings, date), [date, bookings, allBeds]);
   const inHouse = useMemo(() => inHouseOn(bookings, date), [date, bookings]);
 
   const floors = [0, 1, 2] as const;
@@ -62,18 +63,15 @@ export function FloorPlanView() {
         </div>
         <div className="text-[13px] font-medium tabular">{formatShort(date)}</div>
         <div className="ml-auto text-[12px] text-muted-foreground tabular">
-          Occupancy{" "}
-          <span className="text-foreground font-semibold">
-            {Math.round(occ * 100)}%
-          </span>{" "}
-          · {inHouse.length}/{BEDS.length} beds in-house
+          Occupancy <span className="text-foreground font-semibold">{Math.round(occ * 100)}%</span>{" "}
+          · {inHouse.length}/{allBeds.length} beds in-house
         </div>
       </div>
 
       {/* Mini date strip for quick scanning */}
       <div className="hairline-b bg-background px-4 py-2 flex gap-1 overflow-x-auto shrink-0">
         {dates.map((d) => {
-          const pct = nightOccupancy(BEDS, bookings, d);
+          const pct = nightOccupancy(allBeds, bookings, d);
           const active = d === date;
           const isToday = d === TODAY;
           return (
@@ -100,7 +98,7 @@ export function FloorPlanView() {
 
       <div className="flex-1 overflow-auto p-6 space-y-6">
         {floors.map((floor) => {
-          const floorRooms = ROOMS.filter((r) => r.floor === floor);
+          const floorRooms = allRooms.filter((r) => r.floor === floor);
           if (floorRooms.length === 0) return null;
           // Determine grid extent
           const cols = 12;
@@ -127,13 +125,11 @@ export function FloorPlanView() {
                   }}
                 >
                   {floorRooms.map((room) => {
-                    const roomBeds = BEDS.filter((b) => b.roomId === room.id);
+                    const roomBeds = allBeds.filter((b) => b.roomId === room.id);
                     return (
                       <div
                         key={room.id}
-                        className={cn(
-                          "absolute hairline bg-background flex flex-col",
-                        )}
+                        className={cn("absolute hairline bg-background flex flex-col")}
                         style={{
                           left: room.layout.x * CELL_PX,
                           top: room.layout.y * CELL_PX,
@@ -142,16 +138,12 @@ export function FloorPlanView() {
                         }}
                       >
                         <div className="hairline-b px-2 py-1 flex items-center gap-2 text-[10px]">
-                          <span
-                            className={cn(
-                              "h-2 w-2 hairline",
-                              CLASS_TOKEN[room.class],
-                            )}
-                          />
+                          <span className={cn("h-2 w-2 hairline", CLASS_TOKEN[room.class])} />
                           <span className="font-mono font-semibold tabular">{room.number}</span>
                           <span className="truncate text-muted-foreground">{room.name}</span>
                         </div>
-                        <div className="flex-1 grid auto-rows-[1fr] gap-1 p-1.5"
+                        <div
+                          className="flex-1 grid auto-rows-[1fr] gap-1 p-1.5"
                           style={{
                             gridTemplateColumns: `repeat(${Math.min(roomBeds.length, 3)}, minmax(0,1fr))`,
                           }}
@@ -184,9 +176,13 @@ export function FloorPlanView() {
                               >
                                 <div className="opacity-70 truncate font-mono">{bed.label}</div>
                                 {bk ? (
-                                  <div className="font-medium truncate">{bk.guestName.split(" ")[0]}</div>
+                                  <div className="font-medium truncate">
+                                    {bk.guestName.split(" ")[0]}
+                                  </div>
                                 ) : (
-                                  <div className="font-semibold uppercase tracking-wider opacity-80">free</div>
+                                  <div className="font-semibold uppercase tracking-wider opacity-80">
+                                    free
+                                  </div>
                                 )}
                               </button>
                             );

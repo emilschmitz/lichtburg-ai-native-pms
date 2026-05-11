@@ -16,6 +16,7 @@ import { Route as PmsTodayRouteImport } from './routes/pms.today'
 import { Route as PmsTimelineRouteImport } from './routes/pms.timeline'
 import { Route as PmsFloorPlanRouteImport } from './routes/pms.floor-plan'
 import { Route as PmsAssistantRouteImport } from './routes/pms.assistant'
+import { Route as PmsAcademyRouteImport } from './routes/pms.academy'
 import { Route as ApiAiAlternativesRouteImport } from './routes/api.ai.alternatives'
 
 const PmsRoute = PmsRouteImport.update({
@@ -53,6 +54,11 @@ const PmsAssistantRoute = PmsAssistantRouteImport.update({
   path: '/assistant',
   getParentRoute: () => PmsRoute,
 } as any)
+const PmsAcademyRoute = PmsAcademyRouteImport.update({
+  id: '/academy',
+  path: '/academy',
+  getParentRoute: () => PmsRoute,
+} as any)
 const ApiAiAlternativesRoute = ApiAiAlternativesRouteImport.update({
   id: '/api/ai/alternatives',
   path: '/api/ai/alternatives',
@@ -62,6 +68,7 @@ const ApiAiAlternativesRoute = ApiAiAlternativesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/pms': typeof PmsRouteWithChildren
+  '/pms/academy': typeof PmsAcademyRoute
   '/pms/assistant': typeof PmsAssistantRoute
   '/pms/floor-plan': typeof PmsFloorPlanRoute
   '/pms/timeline': typeof PmsTimelineRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/pms/academy': typeof PmsAcademyRoute
   '/pms/assistant': typeof PmsAssistantRoute
   '/pms/floor-plan': typeof PmsFloorPlanRoute
   '/pms/timeline': typeof PmsTimelineRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/pms': typeof PmsRouteWithChildren
+  '/pms/academy': typeof PmsAcademyRoute
   '/pms/assistant': typeof PmsAssistantRoute
   '/pms/floor-plan': typeof PmsFloorPlanRoute
   '/pms/timeline': typeof PmsTimelineRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/pms'
+    | '/pms/academy'
     | '/pms/assistant'
     | '/pms/floor-plan'
     | '/pms/timeline'
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/pms/academy'
     | '/pms/assistant'
     | '/pms/floor-plan'
     | '/pms/timeline'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/pms'
+    | '/pms/academy'
     | '/pms/assistant'
     | '/pms/floor-plan'
     | '/pms/timeline'
@@ -178,6 +190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PmsAssistantRouteImport
       parentRoute: typeof PmsRoute
     }
+    '/pms/academy': {
+      id: '/pms/academy'
+      path: '/academy'
+      fullPath: '/pms/academy'
+      preLoaderRoute: typeof PmsAcademyRouteImport
+      parentRoute: typeof PmsRoute
+    }
     '/api/ai/alternatives': {
       id: '/api/ai/alternatives'
       path: '/api/ai/alternatives'
@@ -189,6 +208,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface PmsRouteChildren {
+  PmsAcademyRoute: typeof PmsAcademyRoute
   PmsAssistantRoute: typeof PmsAssistantRoute
   PmsFloorPlanRoute: typeof PmsFloorPlanRoute
   PmsTimelineRoute: typeof PmsTimelineRoute
@@ -197,6 +217,7 @@ interface PmsRouteChildren {
 }
 
 const PmsRouteChildren: PmsRouteChildren = {
+  PmsAcademyRoute: PmsAcademyRoute,
   PmsAssistantRoute: PmsAssistantRoute,
   PmsFloorPlanRoute: PmsFloorPlanRoute,
   PmsTimelineRoute: PmsTimelineRoute,

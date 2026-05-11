@@ -8,24 +8,10 @@
  */
 
 import { useMemo, useState } from "react";
-import {
-  ROOMS,
-  BEDS,
-  TODAY,
-} from "@/data/hostel";
+import { ROOMS, BEDS, DEMO_ROOMS, DEMO_BEDS, TODAY } from "@/data/hostel";
 import type { Bed, Booking, Room } from "@/data/hostel/types";
-import {
-  addDaysISO,
-  formatDayNum,
-  formatWeekday,
-  rangeDates,
-  diffDays,
-} from "@/lib/pms/dates";
-import {
-  bookingsOnBedInRange,
-  isPrivateRoom,
-  occupancySeries,
-} from "@/lib/pms/availability";
+import { addDaysISO, formatDayNum, formatWeekday, rangeDates, diffDays } from "@/lib/pms/dates";
+import { bookingsOnBedInRange, isPrivateRoom, occupancySeries } from "@/lib/pms/availability";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookings } from "@/lib/pms/bookings-store";
@@ -99,16 +85,27 @@ function computeWholeRoomBlocks(
 
 export function TimelineView() {
   const { bookings } = useBookings();
-  const { openBooking, openNewBooking } = usePmsUi();
+  const { openBooking, openNewBooking, tourActive } = usePmsUi();
   const [anchor, setAnchor] = useState<string>(TODAY);
   const [days, setDays] = useState<number>(14);
 
   const startDate = anchor;
   const endDate = addDaysISO(anchor, days);
   const dates = useMemo(() => rangeDates(startDate, endDate), [startDate, endDate]);
+
+  // Demo rooms only exist during the tour
+  const visibleRooms = useMemo(
+    () => tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS,
+    [tourActive],
+  );
+  const visibleBeds = useMemo(
+    () => tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS,
+    [tourActive],
+  );
+
   const occSeries = useMemo(
-    () => occupancySeries(BEDS, bookings, startDate, endDate),
-    [startDate, endDate, bookings],
+    () => occupancySeries(visibleBeds, bookings, startDate, endDate),
+    [startDate, endDate, bookings, visibleBeds],
   );
 
   return (
@@ -178,18 +175,13 @@ export function TimelineView() {
                 return (
                   <div
                     key={d}
-                    className={cn(
-                      "hairline-r text-center py-1 tabular",
-                      isToday && "bg-accent",
-                    )}
+                    className={cn("hairline-r text-center py-1 tabular", isToday && "bg-accent")}
                     style={{ width: DAY_W }}
                   >
                     <div className="text-[10px] uppercase text-muted-foreground">
                       {formatWeekday(d)}
                     </div>
-                    <div className="text-[14px] font-semibold leading-tight">
-                      {formatDayNum(d)}
-                    </div>
+                    <div className="text-[14px] font-semibold leading-tight">{formatDayNum(d)}</div>
                     <div className="text-[10px] text-muted-foreground">
                       {Math.round(occ.pct * 100)}%
                     </div>
@@ -207,18 +199,15 @@ export function TimelineView() {
             {dates.map((d, i) => (
               <div
                 key={d}
-                className={cn(
-                  "absolute top-0 bottom-0 hairline-r",
-                  d === TODAY && "bg-accent/30",
-                )}
+                className={cn("absolute top-0 bottom-0 hairline-r", d === TODAY && "bg-accent/30")}
                 style={{ left: i * DAY_W, width: DAY_W }}
               />
             ))}
           </div>
 
           {/* Rooms + beds */}
-          {ROOMS.map((room) => {
-            const roomBeds = BEDS.filter((b) => b.roomId === room.id);
+          {visibleRooms.map((room) => {
+            const roomBeds = visibleBeds.filter((b) => b.roomId === room.id);
             const isPrivate = isPrivateRoom(room);
 
             // Compute "whole-room blocks" for private rooms: contiguous date
@@ -233,7 +222,13 @@ export function TimelineView() {
             );
 
             return (
-              <div key={room.id} className="hairline-b relative">
+              <div
+                key={room.id}
+                className={cn(
+                  "hairline-b relative",
+                  room.id === "r-demo-1" && "tour-demo-room-row",
+                )}
+              >
                 {/* Room header row */}
                 <div
                   className="flex bg-secondary hairline-b sticky left-0 z-10"
@@ -245,19 +240,12 @@ export function TimelineView() {
                   >
                     <span className={cn("h-2 w-2 hairline", CLASS_TOKEN[room.class])} />
                     <span className="text-[11px] font-semibold tabular">{room.number}</span>
-                    <span className="text-[11px] text-muted-foreground truncate">
-                      {room.name}
-                    </span>
+                    <span className="text-[11px] text-muted-foreground truncate">{room.name}</span>
                   </div>
                 </div>
                 {/* Bed rows */}
                 {roomBeds.map((bed) => {
-                  const myBookings = bookingsOnBedInRange(
-                    bookings,
-                    bed.id,
-                    startDate,
-                    endDate,
-                  );
+                  const myBookings = bookingsOnBedInRange(bookings, bed.id, startDate, endDate);
                   return (
                     <div
                       key={bed.id}
@@ -280,9 +268,9 @@ export function TimelineView() {
                           (bk) => bk.checkIn <= d && bk.checkOut > d,
                         );
                         const wholeBlocked =
-                          isPrivate &&
-                          wholeBlocks.some((b) => b.from <= d && b.to > d);
+                          isPrivate && wholeBlocks.some((b) => b.from <= d && b.to > d);
                         if (occupiedHere || wholeBlocked) return null;
+                        const isDemoCell = bed.id === "b-demo-1-a" && d === TODAY;
                         return (
                           <button
                             key={d}
@@ -290,11 +278,14 @@ export function TimelineView() {
                               openNewBooking({
                                 bedId: bed.id,
                                 checkIn: d,
-                                checkOut: addDaysISO(d, 1),
+                                checkOut: isDemoCell ? addDaysISO(d, 4) : addDaysISO(d, 1),
                               })
                             }
                             title={`New booking on ${bed.label}, ${d}`}
-                            className="absolute top-0 bottom-0 opacity-0 hover:opacity-100 hover:bg-primary/10 flex items-center justify-center text-primary transition-opacity"
+                            className={cn(
+                              "absolute top-0 bottom-0 flex items-center justify-center transition-colors hover:bg-primary/10 text-transparent hover:text-primary",
+                              isDemoCell && "tour-timeline-demo-1",
+                            )}
                             style={{
                               left: LABEL_W + di * DAY_W,
                               width: DAY_W,
@@ -351,9 +342,7 @@ export function TimelineView() {
                   // Topmost booking determines what the click opens
                   const primary = block.bookings[0];
                   const label = block.partyLabel;
-                  const everyoneTentative = block.bookings.every(
-                    (b) => b.status === "tentative",
-                  );
+                  const everyoneTentative = block.bookings.every((b) => b.status === "tentative");
                   return (
                     <button
                       key={`whole-${room.id}-${block.from}`}

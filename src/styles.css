@@ -164,7 +164,8 @@
     border-color: var(--color-border);
   }
 
-  html, body {
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-display);
@@ -173,12 +174,24 @@
   }
 
   /* Slim hairline utility — exact 1px black */
-  .hairline { border: 1px solid var(--color-hairline); }
-  .hairline-t { border-top: 1px solid var(--color-hairline); }
-  .hairline-b { border-bottom: 1px solid var(--color-hairline); }
-  .hairline-l { border-left: 1px solid var(--color-hairline); }
-  .hairline-r { border-right: 1px solid var(--color-hairline); }
+  .hairline {
+    border: 1px solid var(--color-hairline);
+  }
+  .hairline-t {
+    border-top: 1px solid var(--color-hairline);
+  }
+  .hairline-b {
+    border-bottom: 1px solid var(--color-hairline);
+  }
+  .hairline-l {
+    border-left: 1px solid var(--color-hairline);
+  }
+  .hairline-r {
+    border-right: 1px solid var(--color-hairline);
+  }
 
   /* Tabular numerals everywhere a date/price/code appears */
-  .tabular { font-variant-numeric: tabular-nums; }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }

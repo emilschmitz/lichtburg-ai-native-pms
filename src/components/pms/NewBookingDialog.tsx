@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { ROOMS, BEDS, ROOM_CLASS_LABEL, TODAY } from "@/data/hostel";
+import { ROOMS, BEDS, DEMO_ROOMS, DEMO_BEDS, ROOM_CLASS_LABEL, TODAY } from "@/data/hostel";
 import type { Booking } from "@/data/hostel/types";
 import { useBookings } from "@/lib/pms/bookings-store";
 import { usePmsUi } from "@/lib/pms/ui-store";
@@ -29,6 +29,9 @@ import {
   ArrowRight,
   Sparkles,
   Trash2,
+  CreditCard,
+  Key,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,11 +42,27 @@ interface Leg {
 }
 
 export function NewBookingDialog() {
-  const { newBookingOpen, newBookingPrefill, closeNewBooking, openBooking } = usePmsUi();
+  const {
+    newBookingOpen,
+    newBookingPrefill,
+    closeNewBooking,
+    openBooking,
+    updateTourState,
+    tourState,
+    advanceTourStep,
+    tourCompleted,
+    tourActive,
+  } = usePmsUi();
   const { bookings, checkConflicts, create } = useBookings();
 
+  // Demo rooms only exist during the tour
+  const allRooms = useMemo(() => (tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [tourActive]);
+  const allBeds = useMemo(() => (tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [tourActive]);
+
+  // Force HMR reload
+
   // Defaults — empty fields where reasonable, but dates default to a sensible range
-  const defaultBed = newBookingPrefill?.bedId ?? BEDS[0]?.id ?? "";
+  const defaultBed = newBookingPrefill?.bedId ?? allBeds[0]?.id ?? "";
   const defaultIn = newBookingPrefill?.checkIn ?? TODAY;
   const defaultOut =
     newBookingPrefill?.checkOut ?? addDaysISO(newBookingPrefill?.checkIn ?? TODAY, 1);
@@ -55,6 +74,7 @@ export function NewBookingDialog() {
   const [guestAddress, setGuestAddress] = useState("");
   const [status, setStatus] = useState<Booking["status"]>("confirmed");
   const [notes, setNotes] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [legs, setLegs] = useState<Leg[]>([
     { bedId: defaultBed, checkIn: defaultIn, checkOut: defaultOut },
   ]);
@@ -65,39 +85,37 @@ export function NewBookingDialog() {
   // Re-seed when the dialog re-opens with a different prefill
   useEffect(() => {
     if (!newBookingOpen) return;
-    setGuestName("");
-    setGuestCountry("");
-    setGuestEmail("");
-    setGuestPhone("");
-    setGuestAddress("");
+    const isDemo = newBookingPrefill?.bedId === "b-demo-1-a";
+    setGuestName(isDemo ? "John Doe" : "");
+    setGuestCountry(isDemo ? "US" : "");
+    setGuestEmail(isDemo ? "john.doe@example.com" : "");
+    setGuestPhone(isDemo ? "+1 555 123 4567" : "");
+    setGuestAddress(isDemo ? "123 Main St, Anytown, US" : "");
     setStatus("confirmed");
     setNotes("");
     setWholeRoom(true);
+    setIsSubmitted(false);
     setLegs([
       {
-        bedId: newBookingPrefill?.bedId ?? BEDS[0]?.id ?? "",
+        bedId: newBookingPrefill?.bedId ?? allBeds[0]?.id ?? "",
         checkIn: newBookingPrefill?.checkIn ?? TODAY,
-        checkOut:
-          newBookingPrefill?.checkOut ??
-          addDaysISO(newBookingPrefill?.checkIn ?? TODAY, 1),
+        checkOut: newBookingPrefill?.checkOut ?? addDaysISO(newBookingPrefill?.checkIn ?? TODAY, 1),
       },
     ]);
-  }, [newBookingOpen, newBookingPrefill]);
+  }, [newBookingOpen, newBookingPrefill, allBeds]);
 
   // The first leg drives "whole room" detection. If it lives in a private
   // room with siblings AND the toggle is on, ensure all sibling beds are
   // present as legs with matching dates. If the toggle is off, prune them.
   const leg1 = legs[0];
-  const leg1Room = leg1 ? roomForBed(ROOMS, BEDS, leg1.bedId) : undefined;
+  const leg1Room = leg1 ? roomForBed(allRooms, allBeds, leg1.bedId) : undefined;
   const leg1IsPrivate = isPrivateRoom(leg1Room);
   const siblingBedIds = useMemo(
     () =>
       leg1Room
-        ? BEDS.filter((b) => b.roomId === leg1Room.id && b.id !== leg1.bedId).map(
-            (b) => b.id,
-          )
+        ? allBeds.filter((b) => b.roomId === leg1Room.id && b.id !== leg1.bedId).map((b) => b.id)
         : [],
-    [leg1Room, leg1?.bedId],
+    [leg1Room, leg1?.bedId, allBeds],
   );
   const hasSiblings = siblingBedIds.length > 0;
 
@@ -106,9 +124,14 @@ export function NewBookingDialog() {
     setLegs((cur) => {
       // Always keep leg 1 untouched. Manage only sibling-bed legs that match
       // leg 1 dates — those are considered "whole-room auto-legs".
-      const others = cur.slice(1).filter(
-        (l) => !siblingBedIds.includes(l.bedId) || l.checkIn !== leg1.checkIn || l.checkOut !== leg1.checkOut,
-      );
+      const others = cur
+        .slice(1)
+        .filter(
+          (l) =>
+            !siblingBedIds.includes(l.bedId) ||
+            l.checkIn !== leg1.checkIn ||
+            l.checkOut !== leg1.checkOut,
+        );
       if (wholeRoom) {
         const autoLegs = siblingBedIds.map((bedId) => ({
           bedId,
@@ -121,20 +144,29 @@ export function NewBookingDialog() {
     });
     // Re-run when bed/dates of leg 1 or toggle changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leg1?.bedId, leg1?.checkIn, leg1?.checkOut, leg1IsPrivate, hasSiblings, wholeRoom, siblingBedIds.join(",")]);
+  }, [
+    leg1?.bedId,
+    leg1?.checkIn,
+    leg1?.checkOut,
+    leg1IsPrivate,
+    hasSiblings,
+    wholeRoom,
+    siblingBedIds.join(","),
+  ]);
 
   // Compute conflicts per leg + overall
   const legAnalyses = useMemo(
     () =>
       legs.map((leg) => {
         const datesValid = leg.checkIn < leg.checkOut;
-        const conf = datesValid
-          ? checkConflicts(leg.bedId, leg.checkIn, leg.checkOut)
-          : { ok: true, conflicts: [] };
+        const conf =
+          datesValid && !isSubmitted
+            ? checkConflicts(leg.bedId, leg.checkIn, leg.checkOut)
+            : { ok: true, conflicts: [] };
         const nights = datesValid ? diffDays(leg.checkIn, leg.checkOut) : 0;
         return { leg, datesValid, conflicts: conf.conflicts, nights };
       }),
-    [legs, checkConflicts, bookings],
+    [legs, checkConflicts, bookings, isSubmitted],
   );
 
   // Validate that the legs together cover a continuous range with no gap
@@ -200,6 +232,31 @@ export function NewBookingDialog() {
     notes.length > 0 ||
     legs.length > 1;
 
+  useEffect(() => {
+    if (!newBookingOpen) return;
+    const isDemo = newBookingPrefill?.bedId === "b-demo-1-a";
+    if (isDemo && legs.length > 0) {
+      const firstLeg = legs[0];
+      const checkOutValid = diffDays(firstLeg.checkIn, firstLeg.checkOut) <= 3;
+      const hasSecondLeg = legs.length > 1;
+      let secondLegCheckOutValid = false;
+      let secondLegBedValid = false;
+      if (hasSecondLeg) {
+        const secondLeg = legs[1];
+        secondLegBedValid = secondLeg.bedId === "b-demo-2-a";
+        secondLegCheckOutValid = diffDays(secondLeg.checkIn, secondLeg.checkOut) === 1;
+      }
+
+      updateTourState({
+        checkOutValid,
+        hasSecondLeg,
+        secondLegBedValid,
+        secondLegCheckOutValid,
+        statusCheckedIn: status === "checked_in",
+      });
+    }
+  }, [legs, status, newBookingOpen, newBookingPrefill?.bedId, updateTourState]);
+
   if (!newBookingOpen) return null;
 
   function handleClose() {
@@ -208,12 +265,13 @@ export function NewBookingDialog() {
 
   function addLeg() {
     const last = legs[legs.length - 1];
+    const isDemo = newBookingPrefill?.bedId === "b-demo-1-a";
     setLegs([
       ...legs,
       {
-        bedId: last?.bedId ?? BEDS[0].id,
+        bedId: last?.bedId ?? allBeds[0].id,
         checkIn: last?.checkOut ?? TODAY,
-        checkOut: addDaysISO(last?.checkOut ?? TODAY, 1),
+        checkOut: isDemo ? "" : addDaysISO(last?.checkOut ?? TODAY, 1),
       },
     ]);
   }
@@ -239,9 +297,20 @@ export function NewBookingDialog() {
       notes: notes.trim() || undefined,
       legs,
     });
-    closeNewBooking();
-    // Open the first leg so the operator can verify
-    if (created[0]) openBooking(created[0].id);
+
+    const isDemo = newBookingPrefill?.bedId === "b-demo-1-a";
+
+    if (!isDemo) {
+      closeNewBooking();
+      if (created[0]) {
+        openBooking(created[0].id);
+      }
+    } else {
+      setIsSubmitted(true);
+      updateTourState({ bookingSaved: true });
+    }
+    // For demo: we don't close immediately to prevent Joyride from losing its target.
+    // PmsShell's handleTourCallback will close it when the tour advances.
   }
 
   return (
@@ -269,7 +338,7 @@ export function NewBookingDialog() {
 
         <div className="flex-1 overflow-auto p-4 space-y-5">
           {/* Guest info */}
-          <section className="space-y-2">
+          <section className="space-y-2 tour-guest-section">
             <SectionTitle>Guest</SectionTitle>
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2">
@@ -348,7 +417,7 @@ export function NewBookingDialog() {
               </SectionTitle>
               <button
                 onClick={addLeg}
-                className="hairline px-2 py-1 text-[10px] uppercase tracking-wider hover:bg-secondary flex items-center gap-1"
+                className="hairline px-2 py-1 text-[10px] uppercase tracking-wider hover:bg-secondary flex items-center gap-1 tour-add-leg-btn"
                 title="Extend the stay onto another bed for further nights"
               >
                 <Plus className="h-3 w-3" /> Extend onto another bed
@@ -364,32 +433,27 @@ export function NewBookingDialog() {
                   className="mt-0.5"
                 />
                 <span className="text-[11px] leading-snug">
-                  <strong>Book the whole room</strong> — private rooms are
-                  normally sold as a unit. With this on, all{" "}
-                  {siblingBedIds.length + 1} beds in{" "}
-                  {leg1Room?.number} {leg1Room?.name} are reserved for this
-                  guest. Uncheck only if you really intend to leave the other
-                  bed{siblingBedIds.length > 1 ? "s" : ""} bookable to a
-                  stranger (unusual).
+                  <strong>Book the whole room</strong> — private rooms are normally sold as a unit.
+                  With this on, all {siblingBedIds.length + 1} beds in {leg1Room?.number}{" "}
+                  {leg1Room?.name} are reserved for this guest. Uncheck only if you really intend to
+                  leave the other bed{siblingBedIds.length > 1 ? "s" : ""} bookable to a stranger
+                  (unusual).
                 </span>
               </label>
             )}
 
             {legs.length > 1 && (
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Multi-bed stays are saved as one guest with multiple legs. Legs
-                must be back-to-back with no gap.
+                Multi-bed stays are saved as one guest with multiple legs. Legs must be back-to-back
+                with no gap.
               </p>
             )}
 
             <ol className="space-y-2">
               {legAnalyses.map(({ leg, datesValid, conflicts, nights }, i) => {
-                const room = roomForBed(ROOMS, BEDS, leg.bedId);
+                const room = roomForBed(allRooms, allBeds, leg.bedId);
                 return (
-                  <li
-                    key={i}
-                    className="hairline bg-background p-2.5 space-y-2"
-                  >
+                  <li key={i} className="hairline bg-background p-2.5 space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="hairline bg-foreground text-background text-[10px] font-bold w-5 h-5 flex items-center justify-center font-mono">
                         {i + 1}
@@ -413,24 +477,29 @@ export function NewBookingDialog() {
                       <select
                         value={leg.bedId}
                         onChange={(e) => updateLeg(i, { bedId: e.target.value })}
-                        className="w-full hairline bg-card px-2 py-1.5 text-[12px]"
+                        className={`w-full hairline bg-card px-2 py-1.5 text-[12px] ${i === 1 ? "tour-second-leg-bed" : ""}`}
                       >
-                        {ROOMS.map((r) => (
-                          <optgroup key={r.id} label={`${r.number} · ${r.name}`}>
-                            {BEDS.filter((b) => b.roomId === r.id).map((b) => (
-                              <option key={b.id} value={b.id}>
-                                {r.number} · {b.label} · €{r.pricePerNight}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
+                        {allRooms
+                          .filter((r) => !tourCompleted || !r.id.startsWith("r-demo-"))
+                          .map((r) => (
+                            <optgroup key={r.id} label={`${r.number} · ${r.name}`}>
+                              {allBeds.filter((b) => b.roomId === r.id && (!tourCompleted || !b.id.startsWith("b-demo-"))).map((b) => (
+                                <option key={b.id} value={b.id}>
+                                  {r.number} · {b.label} · €{r.pricePerNight}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
                       </select>
                     </Field>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div
+                      className={`grid grid-cols-2 gap-2 ${i === 0 ? "tour-dates-section" : "tour-second-leg-dates"}`}
+                    >
                       <Field label="Check-in">
                         <input
                           type="date"
+                          lang="de-DE"
                           value={leg.checkIn}
                           onChange={(e) => updateLeg(i, { checkIn: e.target.value })}
                           className="w-full hairline bg-card px-2 py-1.5 text-[12px] tabular"
@@ -439,6 +508,7 @@ export function NewBookingDialog() {
                       <Field label="Check-out">
                         <input
                           type="date"
+                          lang="de-DE"
                           value={leg.checkOut}
                           onChange={(e) => updateLeg(i, { checkOut: e.target.value })}
                           className="w-full hairline bg-card px-2 py-1.5 text-[12px] tabular"
@@ -447,9 +517,7 @@ export function NewBookingDialog() {
                     </div>
 
                     {!datesValid && (
-                      <Inline color="destructive">
-                        Check-out must be after check-in.
-                      </Inline>
+                      <Inline color="destructive">Check-out must be after check-in.</Inline>
                     )}
                     {datesValid && conflicts.length > 0 && (
                       <Inline color="destructive">
@@ -489,6 +557,69 @@ export function NewBookingDialog() {
             )}
           </section>
 
+          {/* Payment & Keys (Mock UI for Tour) */}
+          <section className="space-y-4 pt-4 border-t border-[var(--color-hairline)]">
+            <div className="flex flex-col gap-2">
+              <SectionTitle>Payment</SectionTitle>
+              <div className="text-[11px] text-muted-foreground leading-relaxed">
+                Clicking these would usually activate the physical card reader, but we'll simulate
+                it for now.
+              </div>
+              <div className="flex flex-wrap gap-2 tour-payment-btn">
+                <button
+                  className={cn(
+                    "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                    tourState.paymentDone
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card hover:bg-secondary",
+                  )}
+                  onClick={() => updateTourState({ paymentDone: true })}
+                >
+                  <CreditCard className="w-3.5 h-3.5" /> Credit Card
+                </button>
+                <button
+                  className={cn(
+                    "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                    "bg-card hover:bg-secondary",
+                  )}
+                >
+                  <CreditCard className="w-3.5 h-3.5" /> EC Card
+                </button>l
+                <button
+                  className={cn(
+                    "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                    "bg-card hover:bg-secondary",
+                  )}
+                >
+                  Cash
+                </button>
+                {tourState.paymentDone && (
+                  <span className="text-[11px] text-green-500 font-bold ml-2 self-center flex items-center gap-1 animate-in fade-in">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Paid
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-hairline)]">
+              <SectionTitle>Keycards</SectionTitle>
+              <div className="text-[11px] text-muted-foreground leading-relaxed">
+                Hold physical keycards against the encoder and click:
+              </div>
+              <button
+                className={cn(
+                  "tour-keycard-btn w-fit hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                  tourState.keysDone
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card hover:bg-secondary",
+                )}
+                onClick={() => updateTourState({ keysDone: true })}
+              >
+                <Key className="w-3.5 h-3.5" /> Encode Keycards
+              </button>
+            </div>
+          </section>
+
           <section className="hairline bg-secondary/40 p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Summary
@@ -509,9 +640,8 @@ export function NewBookingDialog() {
           </section>
 
           <p className="text-[10px] text-muted-foreground italic">
-            Tip: need help finding a configuration?{" "}
-            <Sparkles className="inline h-2.5 w-2.5" /> use the AI Assistant — it
-            chains free beds for you when nothing single covers the stay.
+            Tip: need help finding a configuration? <Sparkles className="inline h-2.5 w-2.5" /> use
+            the AI Assistant — it chains free beds for you when nothing single covers the stay.
           </p>
         </div>
 
@@ -524,11 +654,17 @@ export function NewBookingDialog() {
           </button>
           <div className="ml-auto flex items-center gap-2">
             <button
-              disabled={!canSubmit}
+              disabled={!canSubmit || isSubmitted}
               onClick={handleSubmit}
-              className="hairline px-3 py-1.5 text-[12px] font-semibold bg-foreground text-background disabled:opacity-40"
+              className="hairline px-3 py-1.5 text-[12px] font-semibold bg-foreground text-background disabled:opacity-40 tour-save-btn flex items-center gap-1.5"
             >
-              Create booking
+              {isSubmitted ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Saved!
+                </>
+              ) : (
+                "Save"
+              )}
             </button>
           </div>
         </footer>
@@ -545,30 +681,16 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-        {label}
-      </div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
       {children}
     </label>
   );
 }
 
-function Inline({
-  color,
-  children,
-}: {
-  color: "destructive";
-  children: React.ReactNode;
-}) {
+function Inline({ color, children }: { color: "destructive"; children: React.ReactNode }) {
   return (
     <div
       className={cn(

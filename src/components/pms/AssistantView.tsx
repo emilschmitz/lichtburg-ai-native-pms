@@ -5,18 +5,10 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ROOMS,
-  BEDS,
-  ROOM_CLASS_LABEL,
-} from "@/data/hostel";
+import { ROOMS, BEDS, DEMO_ROOMS, DEMO_BEDS, ROOM_CLASS_LABEL } from "@/data/hostel";
 import { useBookings } from "@/lib/pms/bookings-store";
 import type { RoomClass } from "@/data/hostel/types";
-import {
-  buildOccupationContext,
-  type AISuggestion,
-  type AISuggestionsResponse,
-} from "@/lib/ai";
+import { buildOccupationContext, type AISuggestion, type AISuggestionsResponse } from "@/lib/ai";
 import { suggestAlternativesStreaming } from "@/lib/ai/openai-provider";
 import { addDaysISO, formatShort } from "@/lib/pms/dates";
 import { ArrowRight, Loader2, Sparkles, Wand2, ChevronRight, Plus, TrendingUp } from "lucide-react";
@@ -33,7 +25,11 @@ const CLASS_TOKEN: Record<string, string> = {
 
 export function AssistantView() {
   const { bookings } = useBookings();
-  const { openNewBooking } = usePmsUi();
+  const { openNewBooking, tourActive } = usePmsUi();
+
+  // Demo rooms only exist during the tour
+  const allRooms = useMemo(() => (tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [tourActive]);
+  const allBeds = useMemo(() => (tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [tourActive]);
 
   const [naturalLanguage, setNaturalLanguage] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -71,8 +67,8 @@ export function AssistantView() {
       const winStart = checkIn || addDaysISO(new Date().toISOString().slice(0, 10), 0);
       const winEnd = checkOut || addDaysISO(winStart, 14);
       const context = buildOccupationContext({
-        rooms: ROOMS,
-        beds: BEDS,
+        rooms: allRooms,
+        beds: allBeds,
         bookings,
         windowStart: addDaysISO(winStart, -1),
         windowEnd: addDaysISO(winEnd, 1),
@@ -117,8 +113,7 @@ export function AssistantView() {
     });
   }
 
-  const canSubmit =
-    naturalLanguage.trim().length > 0 || (checkIn && checkOut);
+  const canSubmit = naturalLanguage.trim().length > 0 || (checkIn && checkOut);
 
   return (
     <div className="flex h-full">
@@ -126,9 +121,7 @@ export function AssistantView() {
       <div className="w-[380px] hairline-r bg-card flex flex-col shrink-0">
         <header className="hairline-b px-4 py-3 flex items-center gap-2">
           <Sparkles className="h-4 w-4" />
-          <h2 className="text-[13px] font-semibold uppercase tracking-wider">
-            New stay assistant
-          </h2>
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider">New stay assistant</h2>
         </header>
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
@@ -189,7 +182,9 @@ export function AssistantView() {
               >
                 <option value="">No preference</option>
                 {Object.entries(ROOM_CLASS_LABEL).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -231,7 +226,10 @@ export function AssistantView() {
               <span className="text-[11px] text-muted-foreground tabular ml-auto">
                 {(elapsedMs / 1000).toFixed(1)}s
                 {partialSuggestions.length > 0 && (
-                  <> · {partialSuggestions.length} option{partialSuggestions.length === 1 ? "" : "s"}</>
+                  <>
+                    {" "}
+                    · {partialSuggestions.length} option{partialSuggestions.length === 1 ? "" : "s"}
+                  </>
                 )}
               </span>
             </header>
@@ -257,16 +255,44 @@ export function AssistantView() {
           </div>
         )}
 
-        {!result && !loading && (
+        {!result && !loading && !error && (
           <div className="h-full flex items-center justify-center text-center px-8">
             <div className="max-w-md">
               <Sparkles className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-[14px] font-semibold mb-2">No request yet</h3>
               <p className="text-[12px] text-muted-foreground leading-relaxed">
-                Describe a desired stay on the left. The assistant will inspect
-                current occupancy, find chainable bed sequences across rooms,
-                and rank booking configurations by trade-off.
+                Describe a desired stay on the left. The assistant will inspect current occupancy,
+                find chainable bed sequences across rooms, and rank booking configurations by
+                trade-off.
               </p>
+            </div>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="h-full flex items-center justify-center text-center px-8">
+            <div className="max-w-md">
+              <div className="h-10 w-10 mx-auto mb-4 text-destructive flex items-center justify-center bg-destructive/10 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                </svg>
+              </div>
+              <h3 className="text-[14px] font-semibold mb-2 text-destructive">
+                Error connecting to AI provider
+              </h3>
+              <p className="text-[12px] text-muted-foreground leading-relaxed">{error}</p>
             </div>
           </div>
         )}
@@ -331,9 +357,20 @@ function extractCompleteSuggestions(text: string): AISuggestion[] {
   const out: AISuggestion[] = [];
   let i = bracketIdx + 1;
   while (i < text.length) {
-    while (i < text.length && (text[i] === " " || text[i] === "\n" || text[i] === "\r" || text[i] === "\t" || text[i] === ",")) i++;
+    while (
+      i < text.length &&
+      (text[i] === " " ||
+        text[i] === "\n" ||
+        text[i] === "\r" ||
+        text[i] === "\t" ||
+        text[i] === ",")
+    )
+      i++;
     if (i >= text.length || text[i] === "]") break;
-    if (text[i] !== "{") { i++; continue; }
+    if (text[i] !== "{") {
+      i++;
+      continue;
+    }
     const start = i;
     let depth = 0;
     let inStr = false;
@@ -342,16 +379,29 @@ function extractCompleteSuggestions(text: string): AISuggestion[] {
     for (; i < text.length; i++) {
       const c = text[i];
       if (inStr) {
-        if (esc) { esc = false; continue; }
-        if (c === "\\") { esc = true; continue; }
+        if (esc) {
+          esc = false;
+          continue;
+        }
+        if (c === "\\") {
+          esc = true;
+          continue;
+        }
         if (c === '"') inStr = false;
         continue;
       }
-      if (c === '"') { inStr = true; continue; }
+      if (c === '"') {
+        inStr = true;
+        continue;
+      }
       if (c === "{") depth++;
       else if (c === "}") {
         depth--;
-        if (depth === 0) { end = i + 1; i++; break; }
+        if (depth === 0) {
+          end = i + 1;
+          i++;
+          break;
+        }
       }
     }
     if (end === -1) break;
@@ -368,9 +418,7 @@ function extractCompleteSuggestions(text: string): AISuggestion[] {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-        {label}
-      </div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
       {children}
     </label>
   );
@@ -407,7 +455,8 @@ function SuggestionCard({
             )}
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5 tabular">
-            {suggestion.totalNights} nights · €{suggestion.totalPrice.toFixed(0)} total · {suggestion.switches} switch{suggestion.switches === 1 ? "" : "es"}
+            {suggestion.totalNights} nights · €{suggestion.totalPrice.toFixed(0)} total ·{" "}
+            {suggestion.switches} switch{suggestion.switches === 1 ? "" : "es"}
           </div>
         </div>
       </header>
@@ -420,12 +469,7 @@ function SuggestionCard({
         {suggestion.legs.map((leg, i) => (
           <li key={i} className="px-4 py-2.5 text-[12px] space-y-1">
             <div className="flex items-center gap-2 min-w-0">
-              <span
-                className={cn(
-                  "h-2.5 w-2.5 hairline shrink-0",
-                  CLASS_TOKEN[leg.roomClass],
-                )}
-              />
+              <span className={cn("h-2.5 w-2.5 hairline shrink-0", CLASS_TOKEN[leg.roomClass])} />
               <span className="font-mono font-semibold tabular shrink-0">{leg.roomNumber}</span>
               <span className="flex-1 min-w-0 truncate">
                 <span className="font-medium">{leg.roomName}</span>
@@ -436,7 +480,9 @@ function SuggestionCard({
               <span className="truncate">
                 {leg.from} <ChevronRight className="inline h-3 w-3" /> {leg.to}
               </span>
-              <span className="ml-auto shrink-0">{leg.nights}n · €{leg.pricePerNight}</span>
+              <span className="ml-auto shrink-0">
+                {leg.nights}n · €{leg.pricePerNight}
+              </span>
             </div>
           </li>
         ))}

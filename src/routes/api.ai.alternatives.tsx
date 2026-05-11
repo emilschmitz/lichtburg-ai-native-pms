@@ -6,11 +6,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import type {
-  AISuggestionsResponse,
-  DesiredStayInput,
-  OccupationContext,
-} from "@/lib/ai/types";
+import type { AISuggestionsResponse, DesiredStayInput, OccupationContext } from "@/lib/ai/types";
 import { deterministicProvider } from "@/lib/ai/deterministic-provider";
 
 interface Input {
@@ -168,10 +164,7 @@ const JSON_SCHEMA = {
 const enc = new TextEncoder();
 const ndjson = (obj: unknown) => enc.encode(JSON.stringify(obj) + "\n");
 
-async function deterministicFallback(
-  data: Input,
-  reason: string,
-): Promise<AISuggestionsResponse> {
+async function deterministicFallback(data: Input, reason: string): Promise<AISuggestionsResponse> {
   const fallback = await deterministicProvider.suggestAlternatives(data);
   return {
     ...fallback,
@@ -274,13 +267,10 @@ export const Route = createFileRoute("/api/ai/alternatives")({
                     if (!payload || payload === "[DONE]") continue;
                     try {
                       const json = JSON.parse(payload);
-                      const delta: string | undefined =
-                        json.choices?.[0]?.delta?.content;
+                      const delta: string | undefined = json.choices?.[0]?.delta?.content;
                       if (delta) {
                         fullText += delta;
-                        controller.enqueue(
-                          ndjson({ type: "delta", text: delta }),
-                        );
+                        controller.enqueue(ndjson({ type: "delta", text: delta }));
                       }
                     } catch {
                       /* ignore */
@@ -303,11 +293,7 @@ export const Route = createFileRoute("/api/ai/alternatives")({
               controller.enqueue(ndjson({ type: "done", result }));
               controller.close();
             } catch (err) {
-              console.error(
-                "[ai] parse failed:",
-                err,
-                fullText.slice(0, 500),
-              );
+              console.error("[ai] parse failed:", err, fullText.slice(0, 500));
               await finishWithFallback("AI returned malformed JSON");
             }
           },
