@@ -138,39 +138,11 @@ export function AcademyView() {
 
                       return (
                         <>
-                          {passed && (
-                            <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-                              {[...Array(60)].map((_, i) => {
-                                const angle = (i / 60) * 360;
-                                const distance = Math.random() * 400 + 200;
-                                const tx = Math.cos((angle * Math.PI) / 180) * distance;
-                                const ty = Math.sin((angle * Math.PI) / 180) * distance;
-                                const rotation = Math.random() * 720 - 360;
-                                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-                                const color = colors[i % colors.length];
-                                
-                                return (
-                                  <div
-                                    key={i}
-                                    className="absolute left-1/2 top-1/2 w-3 h-3 animate-confetti-burst"
-                                    style={{
-                                      backgroundColor: color,
-                                      '--tw-translate-x': `${tx}px`,
-                                      '--tw-translate-y': `${ty}px`,
-                                      '--tw-rotate': `${rotation}deg`,
-                                      borderRadius: i % 2 === 0 ? '50%' : '2px',
-                                      animationDelay: `${Math.random() * 0.2}s`,
-                                    } as React.CSSProperties}
-                                  />
-                                );
-                              })}
-                            </div>
-                          )}
                           <div
-                            className={`inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 relative z-10 transition-all duration-700 ${
+                            className={`inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 relative z-10 transition-all duration-700 hairline ${
                               passed 
-                                ? "bg-green-500 text-white scale-125 shadow-[0_0_50px_rgba(34,197,94,0.4)]" 
-                                : "bg-destructive/20 text-destructive"
+                                ? "bg-card text-[var(--occ-arrival)] scale-110 shadow-sm" 
+                                : "bg-destructive/10 text-destructive"
                             }`}
                           >
                             {passed ? (
@@ -180,32 +152,33 @@ export function AcademyView() {
                             )}
                           </div>
                           
-                          <div className="relative z-10 space-y-2">
-                            <h2 className={`text-4xl font-black tracking-tight transition-all duration-700 ${passed ? "text-green-600 scale-110" : ""}`}>
-                              {passed ? "PERFECT SCORE!" : "Keep trying!"}
-                            </h2>
-                            <p className="text-muted-foreground text-xl">
-                              You mastered this course with {correctCount}/{activeCourse.quiz.length} correct.
-                            </p>
-                          </div>
-                          
-                          {passed ? (
-                            <div className="p-8 bg-green-50/50 border-2 border-green-200 rounded-3xl max-w-sm mx-auto animate-in zoom-in duration-500 delay-300 relative z-10">
-                              <div className="flex flex-col items-center gap-2">
-                                <div className="text-5xl font-black text-green-700">
-                                  +{activeCourse.points}
-                                </div>
-                                <div className="text-sm font-bold uppercase tracking-widest text-green-600/70">Points Earned</div>
-                              </div>
+                          <div className="relative z-10 space-y-4">
+                            <div>
+                              <h2 className={`text-4xl font-black tracking-tight transition-all duration-700 ${passed ? "text-foreground" : ""}`}>
+                                {passed ? "PERFECT SCORE!" : "Keep trying!"}
+                              </h2>
+                              <p className="text-muted-foreground text-lg">
+                                You mastered this course with {correctCount}/{activeCourse.quiz.length} correct.
+                              </p>
                             </div>
-                          ) : null}
+
+                            {passed && (
+                              <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-1000 fill-mode-both">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 border border-primary/10">
+                                  <Star className="w-3.5 h-3.5 text-primary" />
+                                  <span className="text-sm font-bold text-primary tabular-nums">+{activeCourse.points} Points</span>
+                                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider ml-1">Awarded</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
 
                           <div className="mt-12 relative z-10">
                             <button
                               onClick={quitCourse}
                               className={`px-10 py-4 rounded-2xl font-black text-lg transition-all hover:scale-105 active:scale-95 ${
                                 passed 
-                                  ? "bg-green-600 text-white hover:bg-green-700" 
+                                  ? "bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/20" 
                                   : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
                               }`}
                             >
