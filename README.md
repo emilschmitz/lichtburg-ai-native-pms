@@ -39,15 +39,6 @@ bun run dev
 
 This will start the Vite dev server. Open the local URL provided in your terminal (usually `http://localhost:5173`) to view the application.
 
-## Available Scripts
-
-- `bun run dev`: Starts the development server.
-- `bun run build`: Builds the app for production.
-- `bun run build:dev`: Builds the app in development mode.
-- `bun run preview`: Locally previews the production build.
-- `bun run lint`: Runs ESLint to find code issues.
-- `bun run format`: Formats code using Prettier.
-
 ## Environment Variables
 
 This project requires an OpenAI API key to run its AI-native features.
