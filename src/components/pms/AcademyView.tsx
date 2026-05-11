@@ -9,9 +9,19 @@ import {
   Award,
   Flame,
   Landmark,
+  Shield,
+  Zap,
+  ZapOff,
+  Layout,
+  Gamepad2,
+  Sparkles,
+  User,
+  Gamepad,
 } from "lucide-react";
 import { useAcademy } from "@/lib/pms/academy-store";
 import { COURSES, LEVELS, LEADERBOARD } from "@/data/academy";
+
+type GamificationLevel = "none" | "high";
 
 export function AcademyView() {
   const { points, completedCourses, completeCourse, activeCourseId, setActiveCourseId } =
@@ -20,6 +30,7 @@ export function AcademyView() {
   const [activeModuleIndex, setActiveModuleIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
   const [showQuizResults, setShowQuizResults] = useState(false);
+  const [gamification, setGamification] = useState<GamificationLevel>("high");
 
   const currentLevel = LEVELS.find((l) => points >= l.minPoints) || LEVELS[LEVELS.length - 1];
   const nextLevel = [...LEVELS].reverse().find((l) => l.minPoints > points);
@@ -117,7 +128,7 @@ export function AcademyView() {
                 </div>
 
                 {showQuizResults ? (
-                  <div className="space-y-6 text-center">
+                  <div className="space-y-6 text-center py-12 relative">
                     {(() => {
                       let correctCount = 0;
                       activeCourse.quiz.forEach((q, i) => {
@@ -127,30 +138,76 @@ export function AcademyView() {
 
                       return (
                         <>
+                          {passed && (
+                            <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+                              {[...Array(60)].map((_, i) => {
+                                const angle = (i / 60) * 360;
+                                const distance = Math.random() * 400 + 200;
+                                const tx = Math.cos((angle * Math.PI) / 180) * distance;
+                                const ty = Math.sin((angle * Math.PI) / 180) * distance;
+                                const rotation = Math.random() * 720 - 360;
+                                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+                                const color = colors[i % colors.length];
+                                
+                                return (
+                                  <div
+                                    key={i}
+                                    className="absolute left-1/2 top-1/2 w-3 h-3 animate-confetti-burst"
+                                    style={{
+                                      backgroundColor: color,
+                                      '--tw-translate-x': `${tx}px`,
+                                      '--tw-translate-y': `${ty}px`,
+                                      '--tw-rotate': `${rotation}deg`,
+                                      borderRadius: i % 2 === 0 ? '50%' : '2px',
+                                      animationDelay: `${Math.random() * 0.2}s`,
+                                    } as React.CSSProperties}
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
                           <div
-                            className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${passed ? "bg-green-500/20 text-green-500" : "bg-destructive/20 text-destructive"}`}
+                            className={`inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 relative z-10 transition-all duration-700 ${
+                              passed 
+                                ? "bg-green-500 text-white scale-125 shadow-[0_0_50px_rgba(34,197,94,0.4)]" 
+                                : "bg-destructive/20 text-destructive"
+                            }`}
                           >
                             {passed ? (
-                              <CheckCircle2 className="h-10 w-10" />
+                              <CheckCircle2 className="h-12 w-12" />
                             ) : (
                               <Flame className="h-10 w-10" />
                             )}
                           </div>
-                          <h2 className="text-2xl font-bold">
-                            {passed ? "Course Completed!" : "Keep trying!"}
-                          </h2>
-                          <p className="text-muted-foreground">
-                            You got {correctCount} out of {activeCourse.quiz.length} correct.
-                          </p>
+                          
+                          <div className="relative z-10 space-y-2">
+                            <h2 className={`text-4xl font-black tracking-tight transition-all duration-700 ${passed ? "text-green-600 scale-110" : ""}`}>
+                              {passed ? "PERFECT SCORE!" : "Keep trying!"}
+                            </h2>
+                            <p className="text-muted-foreground text-xl">
+                              You mastered this course with {correctCount}/{activeCourse.quiz.length} correct.
+                            </p>
+                          </div>
+                          
                           {passed ? (
-                            <div className="p-4 bg-primary/10 rounded-lg text-primary font-medium mt-6">
-                              +{activeCourse.points} Points Earned
+                            <div className="p-8 bg-green-50/50 border-2 border-green-200 rounded-3xl max-w-sm mx-auto animate-in zoom-in duration-500 delay-300 relative z-10">
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="text-5xl font-black text-green-700">
+                                  +{activeCourse.points}
+                                </div>
+                                <div className="text-sm font-bold uppercase tracking-widest text-green-600/70">Points Earned</div>
+                              </div>
                             </div>
                           ) : null}
-                          <div className="mt-8">
+
+                          <div className="mt-12 relative z-10">
                             <button
                               onClick={quitCourse}
-                              className="px-6 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors"
+                              className={`px-10 py-4 rounded-2xl font-black text-lg transition-all hover:scale-105 active:scale-95 ${
+                                passed 
+                                  ? "bg-green-600 text-white hover:bg-green-700" 
+                                  : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                              }`}
                             >
                               Return to Dashboard
                             </button>
@@ -240,19 +297,38 @@ export function AcademyView() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-muted/30 overflow-auto">
+    <div className={`h-full flex flex-col overflow-auto transition-colors duration-500 ${gamification === 'none' ? 'bg-background' : 'bg-muted/30'}`}>
       {/* Header Banner */}
-      <div className="relative bg-primary text-primary-foreground overflow-hidden shrink-0">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+      <div className={`relative overflow-hidden shrink-0 transition-all duration-500 ${
+        gamification === 'none' 
+          ? 'bg-card border-b' 
+          : 'bg-primary shadow-lg ring-1 ring-primary/20'
+      }`}>
+        {gamification === 'high' && (
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent animate-pulse"></div>
+        )}
+        
         <div className="max-w-7xl mx-auto w-full px-6 lg:px-8 py-10 md:py-16 relative z-10">
           <div className="flex items-center gap-6 md:gap-8">
-            <Landmark className="w-16 h-16 md:w-20 md:h-20 opacity-90 shrink-0" />
+            <div className={`transition-all duration-500 ${gamification === 'none' ? 'text-primary' : 'text-primary-foreground'}`}>
+              <Landmark className={`transition-all duration-500 ${
+                gamification === 'none' 
+                  ? 'w-12 h-12 opacity-100' 
+                  : 'w-20 h-20 md:w-24 md:h-24 opacity-100 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]'
+              }`} />
+            </div>
             <div>
-              <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-2">
-                Lichtburg Academy
-              </h1>
-              <p className="text-primary-foreground/80 max-w-xl text-lg md:text-xl">
-                Master the art of hospitality.
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className={`text-3xl md:text-5xl font-bold tracking-tight transition-colors duration-500 ${
+                  gamification === 'none' ? 'text-foreground' : 'text-primary-foreground'
+                }`}>
+                  Lichtburg Academy
+                </h1>
+              </div>
+              <p className={`max-w-xl text-lg md:text-xl transition-colors duration-500 ${
+                gamification === 'none' ? 'text-muted-foreground' : 'text-primary-foreground/80'
+              }`}>
+                {gamification === 'none' ? 'Professional Training Portal' : 'Master the art of hospitality.'}
               </p>
             </div>
           </div>
@@ -262,107 +338,157 @@ export function AcademyView() {
       <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col lg:flex-row gap-8">
         {/* Main Content Area */}
         <div className="flex-1 space-y-8">
-          {/* Progress Card */}
-          <div className="bg-card hairline rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-6 items-center">
-            <div className="relative flex items-center justify-center shrink-0">
-              <svg className="w-24 h-24 transform -rotate-90">
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="40"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="transparent"
-                  className="text-muted/30"
-                />
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="40"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="transparent"
-                  strokeDasharray="251.2"
-                  strokeDashoffset={251.2 - (251.2 * progressToNext) / 100}
-                  className="text-primary transition-all duration-1000 ease-out"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-xl font-bold">{points}</span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                  PTS
-                </span>
+          {/* Progress Card (Only for High) */}
+          {gamification === 'high' && (
+            <div className="bg-secondary/40 hairline rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-6 items-center ring-2 ring-primary/5 bg-gradient-to-br from-secondary/50 to-primary/5 transition-all">
+              <div className="relative flex items-center justify-center shrink-0">
+                <svg className="w-24 h-24 transform -rotate-90">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="transparent"
+                    className="text-muted/30"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="transparent"
+                    strokeDasharray="251.2"
+                    strokeDashoffset={251.2 - (251.2 * progressToNext) / 100}
+                    className="text-primary transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="text-xl font-bold">{points}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    PTS
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div className="flex-1 text-center md:text-left">
-              <h2 className="text-sm uppercase tracking-widest text-muted-foreground font-semibold mb-1">
-                Current Status
-              </h2>
-              <div
-                className={`text-2xl font-bold ${currentLevel.color} flex items-center justify-center md:justify-start gap-2 mb-2`}
-              >
-                <Award className="h-6 w-6" />
-                {currentLevel.name}
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-sm uppercase tracking-widest text-muted-foreground font-semibold mb-1">
+                  Current Status
+                </h2>
+                <div
+                  className={`text-2xl font-bold ${currentLevel.color} flex items-center justify-center md:justify-start gap-2 mb-2`}
+                >
+                  <Award className="h-6 w-6" />
+                  {currentLevel.name}
+                </div>
+                {nextLevel ? (
+                  <p className="text-sm text-muted-foreground">
+                    {nextLevel.minPoints - points} more points to reach{" "}
+                    <strong className="text-foreground">{nextLevel.name}</strong>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    You have reached the highest level. Outstanding!
+                  </p>
+                )}
               </div>
-              {nextLevel ? (
-                <p className="text-sm text-muted-foreground">
-                  {nextLevel.minPoints - points} more points to reach{" "}
-                  <strong className="text-foreground">{nextLevel.name}</strong>
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  You have reached the highest level. Outstanding!
-                </p>
-              )}
             </div>
-          </div>
+          )}
+
+          {gamification === 'none' && (
+             <div className="bg-card hairline rounded-xl p-6 flex items-center justify-between">
+                <div>
+                   <h2 className="text-lg font-bold">Your Progress</h2>
+                   <p className="text-sm text-muted-foreground">{completedCourses.length} of {COURSES.length} courses completed</p>
+                </div>
+                <div className="w-48 h-2 bg-muted rounded-full overflow-hidden">
+                   <div 
+                    className="h-full bg-primary" 
+                    style={{ width: `${(completedCourses.length / COURSES.length) * 100}%` }}
+                   />
+                </div>
+             </div>
+          )}
 
           {/* Course List */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold tracking-tight">Available Courses</h2>
-              <span className="text-sm text-muted-foreground">
-                {completedCourses.length} of {COURSES.length} completed
-              </span>
+              <h2 className="text-xl font-semibold tracking-tight">
+                {gamification === 'none' ? 'Curriculum' : 'Available Courses'}
+              </h2>
+              {gamification !== 'none' && (
+                <span className="text-sm text-muted-foreground">
+                  {completedCourses.length} of {COURSES.length} completed
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${gamification === 'none' ? 'md:grid-cols-1' : ''}`}>
               {COURSES.map((course) => {
                 const isCompleted = completedCourses.includes(course.id);
                 return (
-                  <div
+                    <div
                     key={course.id}
-                    className={`group relative bg-card hairline rounded-xl overflow-hidden transition-all hover:shadow-md hover:border-primary/50 ${isCompleted ? "opacity-80" : ""}`}
+                    className={`group relative hairline rounded-xl overflow-hidden transition-all hover:shadow-md ${
+                      gamification === 'none' ? 'bg-card flex items-center p-4 gap-6' : 'bg-secondary/20 p-6'
+                    } ${isCompleted && gamification === 'none' ? "opacity-80" : ""} ${
+                      gamification === 'high' ? 'hover:bg-secondary/30 hover:scale-[1.02] hover:ring-2 hover:ring-primary/20' : ''
+                    }`}
                   >
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isCompleted ? "bg-green-500/10 text-green-600" : "bg-primary/10 text-primary"}`}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          ) : (
-                            <Star className="h-3.5 w-3.5" />
-                          )}
-                          {course.points} Points
-                        </div>
-                        <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                          <PlayCircle className="h-3.5 w-3.5" /> {course.duration}
-                        </span>
+                    {gamification === 'none' && (
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${isCompleted ? 'bg-green-100 text-green-600' : 'bg-primary/5 text-primary'}`}>
+                        {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <PlayCircle className="w-6 h-6" />}
                       </div>
-                      <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors">
-                        {course.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-6">
-                        {course.description}
-                      </p>
+                    )}
+                    
+                    <div className="flex-1">
+                      {gamification === 'high' && (
+                        <div className="flex justify-between items-start mb-4">
+                          <div
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              isCompleted 
+                                ? "bg-green-500/10 text-green-600" 
+                                : "bg-primary text-primary-foreground shadow-sm"
+                            }`}
+                          >
+                            {isCompleted ? (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            ) : (
+                              <Star className="h-3.5 w-3.5" />
+                            )}
+                            {course.points} Points
+                          </div>
+                          <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                            <PlayCircle className="h-3.5 w-3.5" /> {course.duration}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                         <h3 className={`font-bold group-hover:text-primary transition-colors ${gamification === 'none' ? 'text-lg' : 'text-lg mb-2'}`}>
+                          {course.title}
+                        </h3>
+                        {gamification === 'none' && !isCompleted && (
+                           <span className="text-xs text-muted-foreground">{course.duration}</span>
+                        )}
+                      </div>
+                      
+                      {gamification === 'high' && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-6">
+                          {course.description}
+                        </p>
+                      )}
 
                       <button
                         onClick={() => startCourse(course.id)}
-                        className="w-full py-2.5 rounded-lg bg-secondary text-secondary-foreground font-medium text-sm hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
+                        className={`transition-colors flex items-center justify-center gap-2 ${
+                          gamification === 'none'
+                            ? 'ml-auto px-4 py-2 rounded-md bg-primary/5 text-primary text-sm font-semibold hover:bg-primary hover:text-primary-foreground'
+                            : 'w-full py-2.5 rounded-lg bg-secondary text-secondary-foreground font-medium text-sm hover:bg-primary hover:text-primary-foreground'
+                        }`}
                       >
-                        {isCompleted ? "Retake Course" : "Start Course"}
+                        {isCompleted ? "Retake" : "Start"}
                         <ChevronRight className="h-4 w-4" />
                       </button>
                     </div>
@@ -375,58 +501,110 @@ export function AcademyView() {
 
         {/* Sidebar / Leaderboard */}
         <div className="lg:w-80 shrink-0">
-          <div className="bg-card hairline rounded-2xl p-6 shadow-sm sticky top-6">
-            <div className="flex items-center gap-3 mb-6 pb-4 hairline-b">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              <h2 className="font-semibold text-lg tracking-tight">Leaderboard</h2>
-            </div>
+          {gamification === 'high' ? (
+            <div className="bg-secondary/30 hairline rounded-2xl p-6 shadow-sm sticky top-6 ring-2 ring-primary/5">
+              <div className="flex items-center gap-3 mb-6 pb-4 hairline-b">
+                <Trophy className="h-5 w-5 text-yellow-500 animate-bounce" />
+                <h2 className="font-semibold text-lg tracking-tight">
+                  Leaderboard
+                </h2>
+              </div>
 
-            <div className="space-y-4">
-              {fullLeaderboard.map((user, index) => {
-                const isMe = user.id === "me";
-                const rankColor =
-                  index === 0
-                    ? "text-yellow-500"
-                    : index === 1
-                      ? "text-gray-400"
-                      : index === 2
-                        ? "text-amber-600"
-                        : "text-muted-foreground";
+              <div className="space-y-4">
+                {fullLeaderboard.map((user, index) => {
+                  const isMe = user.id === "me";
+                  const rankColor =
+                    index === 0
+                      ? "text-yellow-500"
+                      : index === 1
+                        ? "text-gray-400"
+                        : index === 2
+                          ? "text-amber-600"
+                          : "text-muted-foreground";
 
-                return (
-                  <div
-                    key={user.id}
-                    className={`flex items-center gap-4 p-2 rounded-lg transition-colors ${isMe ? "bg-primary/5 border border-primary/20" : "hover:bg-secondary/50"}`}
-                  >
-                    <div className={`w-6 text-center font-bold text-sm ${rankColor}`}>
-                      #{index + 1}
-                    </div>
-                    <div className="h-10 w-10 rounded-full bg-secondary hairline flex items-center justify-center text-sm font-semibold shrink-0">
-                      {user.name.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p
-                          className={`text-sm font-medium truncate ${isMe ? "text-primary" : "text-foreground"}`}
-                        >
-                          {user.name}
-                        </p>
-                        <span className="text-xs font-bold tabular-nums">{user.points}</span>
+                  return (
+                    <div
+                      key={user.id}
+                      className={`flex items-center gap-4 p-2 rounded-lg transition-colors ${
+                        isMe 
+                          ? "bg-primary text-primary-foreground shadow-md ring-1 ring-primary/20" 
+                          : "hover:bg-secondary/50"
+                      }`}
+                    >
+                      <div className={`w-6 text-center font-bold text-sm ${isMe ? 'text-primary-foreground' : rankColor}`}>
+                        #{index + 1}
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate">{user.role}</p>
+                      <div className={`h-10 w-10 rounded-full hairline flex items-center justify-center text-sm font-semibold shrink-0 ${
+                        isMe ? 'bg-primary-foreground text-primary' : 'bg-secondary'
+                      }`}>
+                        {user.name.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p
+                            className={`text-sm font-medium truncate ${
+                              isMe ? "text-primary-foreground" : "text-foreground"
+                            }`}
+                          >
+                            {user.name}
+                          </p>
+                          <span className={`text-xs font-bold tabular-nums ${isMe ? 'text-primary-foreground' : ''}`}>
+                            {user.points}
+                          </span>
+                        </div>
+                        <p className={`text-[11px] truncate ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                          {user.role}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            <div className="mt-6 pt-4 hairline-t">
-              <p className="text-xs text-center text-muted-foreground">
-                Keep completing courses to climb the ranks!
-              </p>
+              <div className="mt-6 pt-4 hairline-t">
+                <p className="text-xs text-center text-muted-foreground">
+                  Complete courses and quizzes to climb the leaderboard
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-card hairline rounded-xl p-6 sticky top-6">
+               <h2 className="font-semibold text-lg mb-4">Training Resources</h2>
+               <div className="space-y-3">
+                  <div className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+                     <p className="text-sm font-medium">Standard Operating Procedures</p>
+                     <p className="text-xs text-muted-foreground">PDF Document • 4.2 MB</p>
+                  </div>
+                  <div className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+                     <p className="text-sm font-medium">Internal Communication Policy</p>
+                     <p className="text-xs text-muted-foreground">Last updated 2 days ago</p>
+                  </div>
+               </div>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Floating Gamification Toggle */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-1.5 bg-card border shadow-xl rounded-full hairline">
+        <button
+          onClick={() => setGamification("none")}
+          className={`p-2 rounded-full transition-all ${
+            gamification === "none" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary"
+          }`}
+          title="Professional Mode"
+        >
+          <User className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => setGamification("high")}
+          className={`p-2 rounded-full transition-all ${
+            gamification === "high" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary"
+          }`}
+          title="Gamified Mode"
+        >
+          <Gamepad className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
