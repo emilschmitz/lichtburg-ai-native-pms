@@ -40,7 +40,7 @@ export function AcademyView() {
 
   const activeCourse = COURSES.find((c) => c.id === activeCourseId);
 
-  // Derive full leaderboard including current user
+  // Derive leaderboard including current user
   const fullLeaderboard = [
     ...LEADERBOARD,
     { id: "me", name: "You", points, role: "Reception Trainee" },
