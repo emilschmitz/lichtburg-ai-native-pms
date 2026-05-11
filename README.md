@@ -50,8 +50,11 @@ This project requires an OpenAI API key to run its AI-native features.
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-## Lichtburg Academy (Mockup)
+## Lichtburg Academy
 
 The **Lichtburg Academy** is an interactive, gamified staff training dashboard. It includes a mock curriculum of courses specifically designed to simulate training for a front office agent working in a German hostel (e.g., Check-in process, handling complaints, fire safety, etc.).
+The user is nudged to complete trainings by bubble popping up in the sidebar.
+
+https://github.com/user-attachments/assets/572692ec-af2b-4285-8db7-fb3c1c645848
 
 _Note: The course material in the Academy is AI-generated and is meant solely for mockup and demonstration purposes. It is not necessarily accurate or compliant with actual German regulations._
