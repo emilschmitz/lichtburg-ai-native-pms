@@ -2,7 +2,7 @@ import React from "react";
 
 export type Level = { name: string; minPoints: number; color: string };
 export const LEVELS: Level[] = [
-  { name: "Mews Professor", minPoints: 800, color: "text-purple-500" },
+  { name: "Lichtburg PMS Professor", minPoints: 800, color: "text-purple-500" },
   { name: "Timeline Wizard", minPoints: 500, color: "text-blue-500" },
   { name: "Overbooking Survivor", minPoints: 250, color: "text-green-500" },
   { name: "Keycard Ninja", minPoints: 50, color: "text-orange-500" },
@@ -405,7 +405,7 @@ export const COURSES: Course[] = [
         correctIndex: 1,
       },
       {
-        question: "What should you do if a Mews payment hangs and returns a 'No Status' error?",
+        question: "What should you do if a Lichtburg PMS payment hangs and returns a 'No Status' error?",
         options: [
           "Click 'Charge' repeatedly until it works",
           "Delete the credit card and ask the guest for cash",
@@ -427,7 +427,7 @@ export const COURSES: Course[] = [
       <div key="1" className="space-y-6">
         <h3 className="text-2xl font-bold">1. The Night Audit Lock</h3>
         <p className="text-lg leading-relaxed">
-          In a modern PMS like Mews, every night at 2:00 AM, the system runs the Night Audit. This
+          In a modern PMS like Lichtburg PMS, every night at 2:00 AM, the system runs the Night Audit. This
           process takes all the consumed revenue (the rooms people actually slept in that night) and
           locks it for accounting purposes.
         </p>
@@ -567,6 +567,118 @@ export const COURSES: Course[] = [
           "Call the police immediately",
         ],
         correctIndex: 2,
+      },
+    ],
+  },
+  {
+    id: "booking-lifecycle",
+    title: "The Complete Booking Lifecycle",
+    description:
+      "Master the entire reservation process, from initial availability checks to complex multi-leg bookings and final folio settlement.",
+    duration: "45 mins",
+    points: 400,
+    content: [
+      <div key="1" className="space-y-6">
+        <h3 className="text-2xl font-bold">1. Basic Availability and Profiling</h3>
+        <p className="text-lg leading-relaxed">
+          The booking lifecycle begins long before the guest arrives. It starts with an inquiry.
+          When a guest asks for a room, your first task is to check the <b>Timeline</b>.
+        </p>
+        <p className="text-lg leading-relaxed">
+          <b>Profiling:</b> Never create a "blank" booking. Every reservation must be attached to a
+          Guest Profile. A complete profile includes a valid email (for confirmations), a phone
+          number (for emergency contact), and, most importantly, their <b>Marketing Consent</b>.
+          In Lichtburg PMS, if you don't fill out the country code, the system cannot calculate the
+          correct city tax automatically!
+        </p>
+        <div className="p-5 bg-primary/5 rounded-xl border border-primary/20">
+          <h4 className="font-semibold text-primary mb-2">Pro Tip: The Search Bar</h4>
+          <p className="text-muted-foreground leading-relaxed">
+            Use the Global Search at the top of the screen to find existing profiles. 30% of our
+            guests are repeat visitors—don't create duplicate profiles for them!
+          </p>
+        </div>
+      </div>,
+      <div key="2" className="space-y-6">
+        <h3 className="text-2xl font-bold">2. Multi-Leg and Group Bookings</h3>
+        <p className="text-lg leading-relaxed">
+          Hostel life is rarely a straight line. Often, you'll need to move a guest between beds to
+          fit them in during high season. This is a <b>Multi-Leg Booking</b>.
+        </p>
+        <p className="text-lg leading-relaxed">
+          Adding multiple rooms for a family or a small group of friends is even more complex.
+          In the "New Booking" dialog, you can use the <b>"Extend onto another bed"</b> feature,
+          but for true groups (10+ people), you should always use the <b>Group Module</b>.
+        </p>
+        <p className="text-lg leading-relaxed">
+          <b>The "Tear-off" Rule:</b> If one guest in a group wants to pay separately or stay
+          longer, you must "tear off" their leg into a separate booking. Be careful: once a booking
+          is torn off, it loses its link to the Group Folio!
+        </p>
+      </div>,
+      <div key="3" className="space-y-6">
+        <h3 className="text-2xl font-bold">3. Billing, Folios, and Routing</h3>
+        <p className="text-lg leading-relaxed">
+          A <b>Folio</b> is a digital folder containing all the charges and payments for a booking.
+          By default, every booking has one folio (Folio A).
+        </p>
+        <p className="text-lg leading-relaxed">
+          <b>Routing Rules:</b> This is where the magic happens. You can set rules to automatically
+          route specific charges (like the room rate) to a <b>Master Folio</b> (paid by a company
+          or travel agent) while keeping incidentals (like beer or laundry) on the guest's <b>Personal Folio</b>.
+        </p>
+        <div className="p-5 bg-primary/5 rounded-xl border border-primary/20">
+          <h4 className="font-semibold text-primary mb-2">Master Folios</h4>
+          <p className="text-muted-foreground leading-relaxed">
+            When a company is paying for 5 different employees, we use a Master Folio. You route
+            all 5 room rates to this one folder so the company only has to pay one single invoice.
+          </p>
+        </div>
+      </div>,
+      <div key="4" className="space-y-6">
+        <h3 className="text-2xl font-bold">4. Modifications and Cancellations</h3>
+        <p className="text-lg leading-relaxed">
+          Plans change. When a guest calls to modify their stay, always check the <b>Cancellation Policy</b>.
+          If they are within the non-refundable window, the PMS will flag a warning.
+        </p>
+        <p className="text-lg leading-relaxed">
+          <b>No-Show Management:</b> If a guest hasn't arrived by 2:00 AM, the Night Audit will
+          automatically mark them as a "No-Show". This releases the bed but keeps the charge on the
+          folio. To waive the fee, you must manually rebate the charge <i>before</i> closing the
+          folio.
+        </p>
+      </div>,
+    ],
+    quiz: [
+      {
+        question: "When should you use a Master Folio?",
+        options: [
+          "For every single guest",
+          "When a guest wants to pay in cash",
+          "When a company is paying for multiple bookings on a single invoice",
+          "When the guest is a VIP",
+        ],
+        correctIndex: 2,
+      },
+      {
+        question: "What is the first step in a multi-leg booking?",
+        options: [
+          "Checking the Timeline for availability across different beds",
+          "Charging the guest's card",
+          "Encoding the keycard",
+          "Asking for the guest's passport",
+        ],
+        correctIndex: 0,
+      },
+      {
+        question: "What happens if a guest is marked as a 'No-Show'?",
+        options: [
+          "The booking is deleted immediately",
+          "The bed is released, but the charge remains for accounting purposes",
+          "The guest is banned from Berlin",
+          "The city tax is doubled",
+        ],
+        correctIndex: 1,
       },
     ],
   },

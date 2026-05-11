@@ -25,6 +25,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Joyride, STATUS, TooltipRenderProps } from "react-joyride";
+import { cn } from "@/lib/utils";
 import { usePmsUi } from "@/lib/pms/ui-store";
 import { useAcademy } from "@/lib/pms/academy-store";
 import { COURSES, LEVELS } from "@/data/academy";
@@ -47,9 +48,9 @@ const NAV: NavItem[] = [
   { to: "/pms/today", label: "Today", icon: ListChecks, hint: "Arrivals & departures" },
   {
     to: "/pms/assistant",
-    label: "Intelligent booking search",
+    label: "Booking Assistant",
     icon: Sparkles,
-    hint: "Find booking configuration",
+    hint: "Intelligent booking search",
   },
 ];
 
@@ -100,11 +101,10 @@ const CustomTooltip = ({
               if (isNextDisabled) e.preventDefault();
               else primaryProps.onClick(e);
             }}
-            className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${
-              isNextDisabled
+            className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${isNextDisabled
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
                 : "bg-foreground text-background hover:opacity-90"
-            }`}
+              }`}
           >
             Next
           </button>
@@ -113,6 +113,10 @@ const CustomTooltip = ({
           <button
             {...primaryProps}
             onClick={(e) => {
+              if (isNextDisabled) {
+                e.preventDefault();
+                return;
+              }
               // Force cleanup on finish click
               setTourCompleted(true);
               setTourRun(false);
@@ -121,7 +125,10 @@ const CustomTooltip = ({
               closeBooking();
               primaryProps.onClick(e);
             }}
-            className="px-4 py-1.5 text-sm font-medium rounded bg-foreground text-background hover:opacity-90 transition-colors"
+            className={`px-4 py-1.5 text-sm font-medium rounded transition-colors ${isNextDisabled
+                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                : "bg-foreground text-background hover:opacity-90"
+              }`}
           >
             Finish
           </button>
@@ -164,11 +171,13 @@ function Layout({ children }: { children: React.ReactNode }) {
     setNudgeDismissed,
     tourNudgeDismissed,
     setTourNudgeDismissed,
+    isTourEnabled,
   } = usePmsUi();
   const { points, completedCourses, completeCourse, setActiveCourseId } = useAcademy();
   const [nudgeCooldown, setNudgeCooldown] = useState(false);
 
   function startTour() {
+    if (!isTourEnabled) return;
     navigate({ to: "/pms/timeline" });
     resetTourStepIndex();
     updateTourState({
@@ -195,23 +204,29 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   const isTourDone = tourCompleted || completedCourses.includes("tour");
 
-  if (!isTourDone && !tourNudgeDismissed) {
+  if (isTourEnabled && !isTourDone && !tourNudgeDismissed) {
     suggestedAction = "tour";
-    nudgeTitle = "New to Lichtburg?";
+    nudgeTitle = "Welcome to Lichtburg PMS!";
     nudgeText =
-      "Welcome! Before you dive into the courses, let's take a quick interactive tour to show you how bookings work.";
-  } else if (!completedCourses.includes("perfect-checkin")) {
+      "Let's take a quick interactive tour to show you how bookings work.";
+  } else if (!completedCourses.includes("booking-lifecycle")) {
     suggestedAction = "course";
-    suggestedCourseId = "perfect-checkin";
-    nudgeTitle = "Ready for the Academy?";
+    suggestedCourseId = "booking-lifecycle";
+    nudgeTitle = "Master the Booking Lifecycle";
     nudgeText =
-      "Awesome job! There's a lot more to learn about bookings though! Avoid potential pitfalls and do your job confidently by taking the Check-in Procedure course.";
+      "Learn how to handle complex multi-leg bookings, master folios, and routing rules like a pro.";
+    // } else if (!completedCourses.includes("perfect-checkin")) {
+    //   suggestedAction = "course";
+    //   suggestedCourseId = "perfect-checkin";
+    //   nudgeTitle = "Ready for the Academy?";
+    //   nudgeText =
+    //     "There's a lot more to learn about bookings! Avoid potential pitfalls and do your job confidently by taking the Check-in Procedure course.";
   } else if (!completedCourses.includes("vcc-masterclass")) {
     suggestedAction = "course";
     suggestedCourseId = "vcc-masterclass";
     nudgeTitle = "Next Step: Virtual Cards";
     nudgeText =
-      "Great job! Next, learn how to handle Virtual Credit Cards so you don't accidentally double-charge guests.";
+      "Next, learn how to handle Virtual Credit Cards so you don't accidentally double-charge guests.";
   }
 
   const showNudge =
@@ -225,7 +240,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [showCongrats, setShowCongrats] = useState(false);
 
   const tourSteps: any[] = useMemo(
-    () => [
+    () => isTourEnabled ? [
       {
         target: ".tour-demo-room-row",
         content:
@@ -312,8 +327,8 @@ function Layout({ children }: { children: React.ReactNode }) {
         spotlightClicks: true,
         placement: "top",
       },
-    ],
-    [],
+    ] : [],
+    [isTourEnabled],
   );
 
   const handleTourCallback = (data: any) => {
@@ -370,15 +385,17 @@ function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* @ts-ignore */}
-      <Joyride
-        steps={tourSteps}
-        run={tourRun}
-        continuous={true}
+      {isTourEnabled && (
+        <Joyride
+          steps={tourSteps}
+          run={tourRun}
+          continuous={true}
 
-        tooltipComponent={CustomTooltip}
-        // @ts-ignore
-        callback={handleTourCallback}
-      />
+          tooltipComponent={CustomTooltip}
+          // @ts-ignore
+          callback={handleTourCallback}
+        />
+      )}
       <TopBar onNewBooking={() => openNewBooking()} />
       <div className="flex-1 flex min-h-0">
         <aside className="w-56 hairline-r bg-sidebar shrink-0 flex flex-col min-h-0">
@@ -461,7 +478,12 @@ function Layout({ children }: { children: React.ReactNode }) {
               }
             >
               <div className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-primary relative z-10" />
+                <GraduationCap
+                  className={cn(
+                    "h-4 w-4 relative z-10",
+                    activeAcademy ? "text-primary-foreground" : "text-primary",
+                  )}
+                />
                 <span className="font-semibold uppercase tracking-wider text-[11px] relative z-10">
                   Academy
                 </span>

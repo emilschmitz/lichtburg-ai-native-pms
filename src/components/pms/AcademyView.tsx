@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   Award,
   Flame,
+  Landmark,
 } from "lucide-react";
 import { useAcademy } from "@/lib/pms/academy-store";
 import { COURSES, LEVELS, LEADERBOARD } from "@/data/academy";
@@ -243,15 +244,17 @@ export function AcademyView() {
       {/* Header Banner */}
       <div className="relative bg-primary text-primary-foreground overflow-hidden shrink-0">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-        <div className="p-8 md:p-12 relative z-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
-              Lichtburg Academy
-            </h1>
-            <p className="text-primary-foreground/80 max-w-xl text-lg">
-              Master the art of hospitality. Complete courses, earn points, and climb the
-              leaderboard.
-            </p>
+        <div className="max-w-7xl mx-auto w-full px-6 lg:px-8 py-10 md:py-16 relative z-10">
+          <div className="flex items-center gap-6 md:gap-8">
+            <Landmark className="w-16 h-16 md:w-20 md:h-20 opacity-90 shrink-0" />
+            <div>
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-2">
+                Lichtburg Academy
+              </h1>
+              <p className="text-primary-foreground/80 max-w-xl text-lg md:text-xl">
+                Master the art of hospitality.
+              </p>
+            </div>
           </div>
         </div>
       </div>

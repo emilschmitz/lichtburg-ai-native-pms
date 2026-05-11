@@ -85,7 +85,7 @@ function computeWholeRoomBlocks(
 
 export function TimelineView() {
   const { bookings } = useBookings();
-  const { openBooking, openNewBooking, tourActive } = usePmsUi();
+  const { openBooking, openNewBooking, tourActive, isTourEnabled } = usePmsUi();
   const [anchor, setAnchor] = useState<string>(TODAY);
   const [days, setDays] = useState<number>(14);
 
@@ -95,12 +95,12 @@ export function TimelineView() {
 
   // Demo rooms only exist during the tour
   const visibleRooms = useMemo(
-    () => tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS,
-    [tourActive],
+    () => isTourEnabled && tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS,
+    [isTourEnabled, tourActive],
   );
   const visibleBeds = useMemo(
-    () => tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS,
-    [tourActive],
+    () => isTourEnabled && tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS,
+    [isTourEnabled, tourActive],
   );
 
   const occSeries = useMemo(
@@ -270,7 +270,7 @@ export function TimelineView() {
                         const wholeBlocked =
                           isPrivate && wholeBlocks.some((b) => b.from <= d && b.to > d);
                         if (occupiedHere || wholeBlocked) return null;
-                        const isDemoCell = bed.id === "b-demo-1-a" && d === TODAY;
+                        const isDemoCell = isTourEnabled && bed.id === "b-demo-1-a" && d === TODAY;
                         return (
                           <button
                             key={d}

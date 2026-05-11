@@ -29,29 +29,29 @@ export function OnboardingDialog() {
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="justify-start h-auto py-4 px-6 flex flex-col items-start gap-1"
             onClick={() => handleSelect("new")}
           >
             <span className="font-bold">I'm completely new to PMS</span>
             <span className="text-xs text-muted-foreground font-normal">I've never used a property management system before.</span>
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="justify-start h-auto py-4 px-6 flex flex-col items-start gap-1"
             onClick={() => handleSelect("other")}
           >
             <span className="font-bold">I've used other PMS</span>
-            <span className="text-xs text-muted-foreground font-normal">I'm familiar with systems like Opera, Cloudbeds, or Protel.</span>
+            <span className="text-xs text-muted-foreground font-normal">I'm familiar with systems like Mews, Opera, or Protel.</span>
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="justify-start h-auto py-4 px-6 flex flex-col items-start gap-1"
-            onClick={() => handleSelect("mews")}
+            onClick={() => handleSelect("lichtburg pms")}
           >
-            <span className="font-bold">I've used Mews already</span>
-            <span className="text-xs text-muted-foreground font-normal">I'm an experienced Mews user looking for a familiar workflow.</span>
+            <span className="font-bold">I've used Lichtburg PMS already</span>
+            <span className="text-xs text-muted-foreground font-normal">I know my way around the system.</span>
           </Button>
         </div>
       </DialogContent>

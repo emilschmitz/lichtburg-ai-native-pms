@@ -22,7 +22,9 @@ export interface TourState {
   bookingSaved: boolean;
 }
 
-export type ExperienceLevel = "new" | "other" | "mews" | null;
+export type ExperienceLevel = "new" | "other" | "lichtburg pms" | null;
+
+export const IS_TOUR_ENABLED = import.meta.env.VITE_ACTIVATE_TOUR === "true";
 
 interface Ctx {
   selectedBookingId: string | null;
@@ -52,6 +54,7 @@ interface Ctx {
   setNudgeDismissed: (v: boolean) => void;
   tourNudgeDismissed: boolean;
   setTourNudgeDismissed: (v: boolean) => void;
+  isTourEnabled: boolean;
 }
 
 const PmsUiContext = createContext<Ctx | null>(null);
@@ -71,8 +74,8 @@ export function PmsUiProvider({ children }: { children: ReactNode }) {
     statusCheckedIn: false,
     bookingSaved: false,
   });
-  const advanceTourStep = useCallback(() => {}, []); // Dummy for now as it's not used to drive Joyride
-  const resetTourStepIndex = useCallback(() => {}, []); // Dummy
+  const advanceTourStep = useCallback(() => { }, []); // Dummy for now as it's not used to drive Joyride
+  const resetTourStepIndex = useCallback(() => { }, []); // Dummy
   const [tourCompleted, setTourCompleted] = useState(false);
   const [tourActive, setTourActive] = useState(false);
   const [tourRun, setTourRun] = useState(false);
@@ -120,6 +123,7 @@ export function PmsUiProvider({ children }: { children: ReactNode }) {
       setNudgeDismissed,
       tourNudgeDismissed,
       setTourNudgeDismissed,
+      isTourEnabled: IS_TOUR_ENABLED,
     }),
     [
       selectedBookingId,

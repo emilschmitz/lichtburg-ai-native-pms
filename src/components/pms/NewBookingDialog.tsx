@@ -52,12 +52,13 @@ export function NewBookingDialog() {
     advanceTourStep,
     tourCompleted,
     tourActive,
+    isTourEnabled,
   } = usePmsUi();
   const { bookings, checkConflicts, create } = useBookings();
 
   // Demo rooms only exist during the tour
-  const allRooms = useMemo(() => (tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [tourActive]);
-  const allBeds = useMemo(() => (tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [tourActive]);
+  const allRooms = useMemo(() => (isTourEnabled && tourActive ? [...ROOMS, ...DEMO_ROOMS] : ROOMS), [isTourEnabled, tourActive]);
+  const allBeds = useMemo(() => (isTourEnabled && tourActive ? [...BEDS, ...DEMO_BEDS] : BEDS), [isTourEnabled, tourActive]);
 
   // Force HMR reload
 
@@ -383,7 +384,7 @@ export function NewBookingDialog() {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as Booking["status"])}
-                  className="w-full hairline bg-background px-2 py-1.5 text-[12px]"
+                  className="w-full hairline bg-background px-2 py-1.5 text-[12px] tour-status-section"
                 >
                   <option value="tentative">tentative</option>
                   <option value="confirmed">confirmed</option>
@@ -558,67 +559,69 @@ export function NewBookingDialog() {
           </section>
 
           {/* Payment & Keys (Mock UI for Tour) */}
-          <section className="space-y-4 pt-4 border-t border-[var(--color-hairline)]">
-            <div className="flex flex-col gap-2">
-              <SectionTitle>Payment</SectionTitle>
-              <div className="text-[11px] text-muted-foreground leading-relaxed">
-                Clicking these would usually activate the physical card reader, but we'll simulate
-                it for now.
+          {isTourEnabled && (
+            <section className="space-y-4 pt-4 border-t border-[var(--color-hairline)]">
+              <div className="flex flex-col gap-2">
+                <SectionTitle>Payment</SectionTitle>
+                <div className="text-[11px] text-muted-foreground leading-relaxed">
+                  Clicking these would usually activate the physical card reader, but we'll simulate
+                  it for now.
+                </div>
+                <div className="flex flex-wrap gap-2 tour-payment-btn">
+                  <button
+                    className={cn(
+                      "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                      tourState.paymentDone
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card hover:bg-secondary",
+                    )}
+                    onClick={() => updateTourState({ paymentDone: true })}
+                  >
+                    <CreditCard className="w-3.5 h-3.5" /> Credit Card
+                  </button>
+                  <button
+                    className={cn(
+                      "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                      "bg-card hover:bg-secondary",
+                    )}
+                  >
+                    <CreditCard className="w-3.5 h-3.5" /> EC Card
+                  </button>
+                  <button
+                    className={cn(
+                      "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                      "bg-card hover:bg-secondary",
+                    )}
+                  >
+                    Cash
+                  </button>
+                  {tourState.paymentDone && (
+                    <span className="text-[11px] text-green-500 font-bold ml-2 self-center flex items-center gap-1 animate-in fade-in">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Paid
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2 tour-payment-btn">
+
+              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-hairline)]">
+                <SectionTitle>Keycards</SectionTitle>
+                <div className="text-[11px] text-muted-foreground leading-relaxed">
+                  Hold physical keycards against the encoder and click:
+                </div>
                 <button
                   className={cn(
-                    "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
-                    tourState.paymentDone
+                    "tour-keycard-btn w-fit hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
+                    tourState.keysDone
                       ? "bg-primary text-primary-foreground"
                       : "bg-card hover:bg-secondary",
                   )}
-                  onClick={() => updateTourState({ paymentDone: true })}
+                  onClick={() => updateTourState({ keysDone: true })}
                 >
-                  <CreditCard className="w-3.5 h-3.5" /> Credit Card
+                  <Key className="w-3.5 h-3.5" /> Encode Keycards
                 </button>
-                <button
-                  className={cn(
-                    "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
-                    "bg-card hover:bg-secondary",
-                  )}
-                >
-                  <CreditCard className="w-3.5 h-3.5" /> EC Card
-                </button>l
-                <button
-                  className={cn(
-                    "hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
-                    "bg-card hover:bg-secondary",
-                  )}
-                >
-                  Cash
-                </button>
-                {tourState.paymentDone && (
-                  <span className="text-[11px] text-green-500 font-bold ml-2 self-center flex items-center gap-1 animate-in fade-in">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Paid
-                  </span>
-                )}
               </div>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-2 border-t border-[var(--color-hairline)]">
-              <SectionTitle>Keycards</SectionTitle>
-              <div className="text-[11px] text-muted-foreground leading-relaxed">
-                Hold physical keycards against the encoder and click:
-              </div>
-              <button
-                className={cn(
-                  "tour-keycard-btn w-fit hairline px-3 py-1.5 text-[11px] font-medium flex items-center gap-1.5 transition-colors",
-                  tourState.keysDone
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card hover:bg-secondary",
-                )}
-                onClick={() => updateTourState({ keysDone: true })}
-              >
-                <Key className="w-3.5 h-3.5" /> Encode Keycards
-              </button>
-            </div>
-          </section>
+            </section>
+          )}
 
           <section className="hairline bg-secondary/40 p-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
